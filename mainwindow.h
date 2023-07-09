@@ -26,6 +26,7 @@ private:
     void openCharTableView();
     void openStateTableView();
     void showInitDialog();
+    void filterObsTable(QString filterValue);
     void createMainTables();
     void configMainTables();
 //    void onDataChanged();
@@ -52,6 +53,7 @@ private:
 private slots:
     void onDataChanged();
     void onTaxaChanged();
+    void onTaxonSelected(const QModelIndex &index);
 
 
 signals:

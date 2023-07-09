@@ -18,6 +18,7 @@
 #include <QSplitter>
 #include <QSpacerItem>
 #include <QListView>
+#include <QSqlRecord>
 
 #include "mainwindow.h"
 #include "ncl.h"
@@ -26,6 +27,10 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
+    // Initiate database
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+    centralDb = &db;
+
     showInitDialog(); // Before opening a main window, get some basic input from the user: open or create a database?
 
     if (path.isEmpty()) {
@@ -43,20 +48,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     createMenus();
 
-    // Do the basic database setup
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName(path);
-    qDebug() << db.databaseName();
-    db.open();
-
-    centralDb = &db;
-
-    if (!QFile::exists(path)) {
-        createMainTables();
-    }
-
-    configMainTables();
-
     // Do the basic interface display setup with table views.
     QWidget *myCentralWidget = new QWidget(this);
     setCentralWidget(myCentralWidget);
@@ -68,7 +59,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     taxaTableView = new QTableView(this);
     taxaTableView->setModel(taxaTable);
     taxaTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
-//    taxaTableView->setEditTriggers(QAbstractItemView::AllEditTriggers);
+    taxaTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
 //    taxaList = new QListView(this);
 
@@ -82,12 +73,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     splitter->addWidget(obsTableView);
 
     // Display the tables
-    taxaTableView->hideColumn(0);
+    taxaTableView->setColumnHidden(0, true);
+    taxaTableView->setColumnHidden(2, true);
     taxaTableView->show();
 
+
+    obsTableView->setColumnHidden(0, true);
     obsTableView->show();
-    obsTableView->hideColumn(0);
 //    obsTableView->setSortingEnabled(true);
+
+    connect(taxaTableView, &QAbstractItemView::clicked, this, &MainWindow::onTaxonSelected);
+    connect(observationsTable, &QSqlRelationalTableModel::dataChanged, obsTableView, &QTableView::resizeColumnsToContents);
 
     taxaTableView->resizeColumnsToContents();
     obsTableView->resizeColumnsToContents();
@@ -182,6 +178,12 @@ void MainWindow::dbNew()
 
     path = fopen.getSaveFileName();
 
+    centralDb->setDatabaseName(path);
+    qDebug() << centralDb->databaseName();
+    centralDb->open();
+
+    createMainTables();
+    configMainTables();
 
 //    unsigned int taxcount = 1;
 //    unsigned int charcount = 1;
@@ -210,10 +212,11 @@ void MainWindow::dbOpen()
 
     path = fopen.getOpenFileName();
 
-//    unsigned int taxcount = 1;
-//    unsigned int charcount = 1;
+    centralDb->setDatabaseName(path);
+    qDebug() << centralDb->databaseName();
+    centralDb->open();
 
-//    filename = fopen.getOpenFileName();
+    configMainTables();
 
 //    fileMenu->actions().at(0)->setEnabled(false); // Disable New menu
 //    fileMenu->actions().at(1)->setEnabled(false); // Disable Open menu
@@ -249,7 +252,6 @@ void MainWindow::importNexus()
         return;
     }
 
-    // TODO: Handle the contents
     QSqlQuery query;
     QCryptographicHash charUUID(QCryptographicHash::Sha1);
     QByteArray data;
@@ -273,16 +275,22 @@ void MainWindow::importNexus()
         QString label = nxreader.getCharLabel(i);
         charUUID.addData(label.toLocal8Bit());
 
-        if (query.next()) {
-            qDebug() << query.value(0).toString();
-        }
+//        if (query.next()) {
+            qDebug() << label;//query.value(0).toString();
+//        }
         for (j = 0; j < nxreader.getNumStatesForChar(i); ++j) {
             charUUID.addData(nxreader.getStateLabel(i, j).toLocal8Bit());
         }
+
         hashresult = charUUID.result();
         charUUID.reset();
         QString shortHash = QString(hashresult.toHex().remove(0, 2 * hashresult.size() - 7));
-        query.exec(QString("INSERT INTO characters (char_id, label) VALUES ('%1', '%2')").arg(shortHash).arg(label));
+        query.prepare(QString("INSERT INTO characters (char_id, label) VALUES (:char_id, :label)"));
+        query.bindValue(":char_id", shortHash);
+        query.bindValue(":label", label);
+        if (!query.exec()) {
+            qDebug() << "Error inserting " << label;
+        }
     }
 
     unsigned int ctr = 1;
@@ -344,9 +352,21 @@ void MainWindow::onTaxaChanged()
     taxaTable->select();
 }
 
+void MainWindow::onTaxonSelected(const QModelIndex &index)
+{
+    QSqlRecord record = taxaTable->record(index.row());
+    QVariant taxonID = record.value(QString("taxon_id"));
+
+    qDebug() << "Selected: " << taxonID.toString();
+
+    observationsTable->setFilter(QString("taxon = '%1'").arg(taxonID.toString()));
+    observationsTable->select();
+}
+
 void MainWindow::openCharTableView()
 {
     QWidget *charwindow = new QWidget;
+    charwindow->setWindowModality(Qt::ApplicationModal);
 
     QTableView *charTableView = new QTableView;
     charTableView->setModel(charTable);
@@ -422,6 +442,11 @@ void MainWindow::showInitDialog()
     initDialog.exec();
 }
 
+void MainWindow::filterObsTable(QString filterValue)
+{
+    observationsTable->setFilter(filterValue);
+}
+
 void MainWindow::createMainTables()
 {
     QSqlQuery query(*centralDb);
@@ -441,8 +466,7 @@ void MainWindow::createMainTables()
                 "character VARCHAR(7),"
                 "label VARCHAR(200),"
                 "definition MEDIUMTEXT,"
-                "FOREIGN KEY (character) REFERENCES characters (char_id)"
-               ")");
+                "FOREIGN KEY (character) REFERENCES characters (char_id))");
 
     query.exec("CREATE TABLE observations ("
                 "id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -451,8 +475,7 @@ void MainWindow::createMainTables()
                 "state VARCHAR(200),"
                 "notes MEDIUMTEXT,"
                 "FOREIGN KEY (taxon) REFERENCES taxa (taxon_id) ON UPDATE CASCADE,"
-                "FOREIGN KEY (character) REFERENCES characters (char_id) ON UPDATE CASCADE"
-                ")");
+                "FOREIGN KEY (character) REFERENCES characters (char_id) ON UPDATE CASCADE)");
     if (query.next()) {
         qDebug() << query.value(0).toString();
     }

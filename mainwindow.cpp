@@ -1,24 +1,26 @@
 #include <QApplication>
+#include <QCryptographicHash>
+#include <QDebug>
+#include <QDialog>
+#include <QDir>
+#include <QFileDialog>
+#include <QGridLayout>
+#include <QHBoxLayout>
+#include <QHeaderView>
+#include <QInputDialog>
+#include <QLabel>
+#include <QListView>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QScreen>
-#include <QDir>
-#include <QFileDialog>
-#include <QInputDialog>
-#include <QWindow>
-#include <QHeaderView>
-#include <QDialog>
-#include <QLabel>
-#include <QSqlRelationalTableModel>
-#include <QCryptographicHash>
-#include <QTableView>
-#include <QHBoxLayout>
-#include <QDebug>
-#include <QSplitter>
 #include <QSpacerItem>
-#include <QListView>
+#include <QSplitter>
 #include <QSqlRecord>
+#include <QSqlRelationalTableModel>
+#include <QTableView>
+#include <QVBoxLayout>
+#include <QWindow>
 
 #include "mainwindow.h"
 #include "ncl.h"
@@ -52,7 +54,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     QWidget *myCentralWidget = new QWidget(this);
     setCentralWidget(myCentralWidget);
 
-    QHBoxLayout *mainLayout = new QHBoxLayout(myCentralWidget);
+    QGridLayout *mainLayout = new QGridLayout(myCentralWidget);
     myCentralWidget->setLayout(mainLayout);
 
     // Add the relevant tables
@@ -67,10 +69,19 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     obsTableView->setModel(observationsTable);
     obsTableView->setEditTriggers(QAbstractItemView::AllEditTriggers);
 
-    QSplitter *splitter = new QSplitter(Qt::Horizontal);
-    mainLayout->addWidget(splitter);
-    splitter->addWidget(taxaTableView);
-    splitter->addWidget(obsTableView);
+    // Add buttons and text areas
+    QLineEdit *taxaFilterField = new QLineEdit(this);
+    QLineEdit *obsFilterField = new QLineEdit(this);
+    mainLayout->addWidget(taxaFilterField, 0, 0);
+    mainLayout->addWidget(obsFilterField, 0, 1);
+    mainLayout->addWidget(taxaTableView, 1, 0);
+    mainLayout->addWidget(obsTableView, 1, 1);
+
+    // Put the main tables in a splitter:
+//    QSplitter *splitter = new QSplitter(Qt::Horizontal);
+//    mainLayout->addWidget(splitter, 1, 0);
+//    splitter->addWidget(taxaTableView);
+//    splitter->addWidget(obsTableView);
 
     // Display the tables
     taxaTableView->setColumnHidden(0, true);
@@ -84,6 +95,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     connect(taxaTableView, &QAbstractItemView::clicked, this, &MainWindow::onTaxonSelected);
     connect(observationsTable, &QSqlRelationalTableModel::dataChanged, obsTableView, &QTableView::resizeColumnsToContents);
+    connect(obsFilterField, &QLineEdit::textEdited, this, &MainWindow::onObsFilterEdited);
 
     taxaTableView->resizeColumnsToContents();
     obsTableView->resizeColumnsToContents();
@@ -360,6 +372,12 @@ void MainWindow::onTaxonSelected(const QModelIndex &index)
     qDebug() << "Selected: " << taxonID.toString();
 
     observationsTable->setFilter(QString("taxon = '%1'").arg(taxonID.toString()));
+    observationsTable->select();
+}
+
+void MainWindow::onObsFilterEdited(const QString &string)
+{
+    observationsTable->setFilter(QString("character = '%1'").arg(string));
     observationsTable->select();
 }
 

@@ -54,6 +54,7 @@ private slots:
     void onDataChanged();
     void onTaxaChanged();
     void onTaxonSelected(const QModelIndex &index);
+    void onObsFilterEdited(const QString &string);
 
 
 signals:

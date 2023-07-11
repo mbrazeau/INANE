@@ -9,11 +9,18 @@ class QPushButton;
 class QTableView;
 class QListView;
 class QSqlRelationalTableModel;
+class QLineEdit;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 public:
     explicit MainWindow(QWidget *parent = nullptr);
+
+public slots:
+    void onDataChanged();
+    void onTaxaChanged();
+    void onTaxonSelected(const QModelIndex &index);
+    void onObsFilterEdited(const QString &string);
 
 private:
     void createMenus();
@@ -31,11 +38,15 @@ private:
     void configMainTables();
 //    void onDataChanged();
 
+    QString taxonFilter;
+
+    QLineEdit *obsFilterField;
+
     QMenu *fileMenu;
     QMenu *editMenu;
     QMenu *charsMenu;
 
-    QSqlDatabase *centralDb;
+    QSqlDatabase db;
 
     QSqlRelationalTableModel *taxaTable;
     QSqlRelationalTableModel *charTable;
@@ -51,10 +62,7 @@ private:
     QString path;
 
 private slots:
-    void onDataChanged();
-    void onTaxaChanged();
-    void onTaxonSelected(const QModelIndex &index);
-    void onObsFilterEdited(const QString &string);
+
 
 
 signals:

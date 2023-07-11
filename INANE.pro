@@ -2,11 +2,10 @@ TEMPLATE = app
 TARGET = INANE
 QT = core gui
 
-greaterThan(QT_MAJOR_VERSION, 5): QT += widgets
-
-QT += sql
+greaterThan(QT_MAJOR_VERSION, 5): QT += sql widgets
 
 SOURCES += \
+    charactereditorwindow.cpp \
     compdatabase.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -16,12 +15,15 @@ SOURCES += \
     taxonmanager.cpp
 
 HEADERS += \
+    charactereditorwindow.h \
     compdatabase.h \
     mainwindow.h \
     nexusreader.h \
     observationtable.h \
     sqllistview.h \
     taxonmanager.h
+
+QMAKE_MACOSX_DEPLOYMENT_TARGET = 13.0
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/external/ncl/build/ncl/release/ -lncl
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/external/ncl/build/ncl/debug/ -lncl

@@ -23,9 +23,6 @@ void NexusReader::openNexusFile(char *arg)
     if (hasDataBlock()) {
         _datab->TransferTo(*_characters);
     }
-
-//    // For testing: let's try writing a Nexus file:
-//    _taxa->Report();
 }
 
 void NexusReader::closeNexusFile()
@@ -100,11 +97,11 @@ QString NexusReader::getStateLabel(unsigned int taxon_i, unsigned int char_i, un
     unsigned int i;
 
     if (_characters->GetInternalRepresentation(taxon_i, char_i, 0) == -2) {
-        return "Missing";
+        return "missing";
     }
 
     if (_characters->GetInternalRepresentation(taxon_i, char_i, 0) == -3) {
-        return "Inapplicable";
+        return "inapplicable";
     }
 
     return QString(_characters->GetStateLabel(char_i, state_i).c_str());

@@ -45,7 +45,7 @@ unsigned int NexusReader::getNchar()
 
 unsigned int NexusReader::getNumStatesForChar(unsigned int i)
 {
-    return _characters->GetObsNumStates(i, false);
+    return _characters->GetObsNumStates(i, true);
 }
 
 int NexusReader::getInternalRepresentation(unsigned int i, unsigned int j, unsigned int k)

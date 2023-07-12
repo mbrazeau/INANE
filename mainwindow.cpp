@@ -86,6 +86,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     splitter->addWidget(obsTableView);
     splitter->setStretchFactor(1, 2);
 
+
+    QPushButton *addObs = new QPushButton(tr("New observation"), this);
+    mainLayout->addWidget(addObs, 2, 3);
+    mainLayout->setColumnStretch(1, 2);
+
 //    taxaTableView->resizeColumnsToContents();
 //    obsTableView->resizeColumnsToContents();
 }
@@ -100,7 +105,7 @@ void MainWindow::createMenus()
      newAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_N));
      connect(newAct, &QAction::triggered, this, &MainWindow::dbNew);
 
-     QAction *openAct = new QAction(tr("&Open Databae..."), this);
+     QAction *openAct = new QAction(tr("&Open Database..."), this);
      fileMenu->addAction(openAct);
      openAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_O));
      connect(openAct, &QAction::triggered, this, &MainWindow::dbOpen);
@@ -289,7 +294,10 @@ void MainWindow::importNexus()
         qDebug() << label;
 
         for (j = 0; j < nxreader.getNumStatesForChar(i); ++j) {
-            charUUID.addData(nxreader.getStateLabel(i, j).toLocal8Bit());
+            QString label = nxreader.getStateLabel(i, j);
+            if (label != " ") {
+                charUUID.addData(label.toLocal8Bit());
+            }
         }
 
         hashresult = charUUID.result();
@@ -305,12 +313,15 @@ void MainWindow::importNexus()
         // Insert into the state table
         for (j = 0; j < nxreader.getNumStatesForChar(i); ++j) {
             QString stateLabel = QString(nxreader.getStateLabel(i, j).toLocal8Bit());
-            query.prepare(QString("INSERT INTO states (character, label) VALUES (:character, :label)"));
-//            query.bindValue(":state_id", ctr);
-            query.bindValue(":character", shortHash);
-            query.bindValue(":label", stateLabel);
-            query.exec();
-            ctr++;
+            qDebug() << "Label: " << stateLabel;
+            if (stateLabel != " ") {
+                query.prepare(QString("INSERT INTO states (character, label) VALUES (:character, :label)"));
+                //            query.bindValue(":state_id", ctr);
+                query.bindValue(":character", shortHash);
+                query.bindValue(":label", stateLabel);
+                query.exec();
+                ctr++;
+            }
         }
         query.exec(QString("INSERT INTO states (character, label) VALUES ('%1', '%2')").arg(shortHash, QString("missing")));
         query.exec(QString("INSERT INTO states (character, label) VALUES ('%1', '%2')").arg(shortHash, QString("inapplicable")));
@@ -366,6 +377,9 @@ void MainWindow::importNexus()
     charTable->select();
     observationsTable->select();
 
+    onDataChanged();
+    onTaxaChanged();
+
     // Close the file, it's no longer needed.
     nxreader.closeNexusFile();
 }
@@ -373,11 +387,13 @@ void MainWindow::importNexus()
 void MainWindow::onDataChanged()
 {
     observationsTable->select();
+    obsTableView->resizeColumnsToContents();
 }
 
 void MainWindow::onTaxaChanged()
 {
     taxaTable->select();
+    taxaTableView->resizeColumnsToContents();
 }
 
 void MainWindow::onTaxonSelected(const QModelIndex &index)
@@ -425,8 +441,9 @@ void MainWindow::onObsFilterEdited(const QString &string)
 void MainWindow::openCharTableView()
 {
     CharacterEditorWindow *charEditor = new CharacterEditorWindow;
-    charEditor->setDatabase(charTable);
+    charEditor->setCharTable(charTable, stateTable);
     connect(charTable, &QSqlRelationalTableModel::dataChanged, this, &MainWindow::onDataChanged);
+    connect(stateTable, &QSqlRelationalTableModel::dataChanged, this, &MainWindow::onDataChanged);
     charEditor->show();
 }
 
@@ -549,7 +566,7 @@ void MainWindow::configMainTables()
     observationsTable = new QSqlRelationalTableModel(this, db);
     observationsTable->setTable("observations");
     observationsTable->setEditStrategy(QSqlRelationalTableModel::OnFieldChange);
-    connect(observationsTable, &QSqlRelationalTableModel::dataChanged, obsTableView, &QTableView::resizeColumnsToContents);
+
 
     observationsTable->setRelation(1, QSqlRelation("taxa", "taxon_id", "name"));
     observationsTable->setRelation(2, QSqlRelation("characters", "char_id", "label"));
@@ -561,6 +578,8 @@ void MainWindow::configMainTables()
     taxaTable->select();
     charTable->select();
     observationsTable->select();
+
+    connect(observationsTable, &QSqlRelationalTableModel::dataChanged, obsTableView, &QTableView::resizeColumnsToContents);
 
     // Display the tables
     taxaTableView->setColumnHidden(0, true);

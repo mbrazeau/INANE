@@ -30,13 +30,12 @@ private:
     void dbOpen();
     void dbClose();
     void importNexus();
+    void exportNexus();
     void openCharTableView();
     void openStateTableView();
     void showInitDialog();
-    void filterObsTable(QString filterValue);
     void createMainTables();
     void configMainTables();
-//    void onDataChanged();
 
     QString taxonFilter;
 

@@ -24,6 +24,8 @@
 #include <QVBoxLayout>
 #include <QWindow>
 
+#include <iostream>
+
 #include "mainwindow.h"
 #include "nexusreader.h"
 #include "charactereditorwindow.h"
@@ -69,6 +71,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 //    taxFilterLabel->setText(tr("Filter taxa:"));
     obsFilterField = new QLineEdit(this);
     QLabel *obsFilterLabel = new QLabel(this);
+    obsFilterLabel->setBuddy(obsFilterField);
     obsFilterLabel->setText(tr("Filter observations:"));
 
 //    mainLayout->addWidget(taxFilterLabel, 0, 0);
@@ -86,13 +89,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     splitter->addWidget(obsTableView);
     splitter->setStretchFactor(1, 2);
 
-
     QPushButton *addObs = new QPushButton(tr("New observation"), this);
     mainLayout->addWidget(addObs, 2, 3);
     mainLayout->setColumnStretch(1, 2);
-
-//    taxaTableView->resizeColumnsToContents();
-//    obsTableView->resizeColumnsToContents();
 }
 
 void MainWindow::createMenus()
@@ -226,9 +225,6 @@ void MainWindow::dbOpen()
     }
 
     configMainTables();
-
-//    fileMenu->actions().at(0)->setEnabled(false); // Disable New menu
-//    fileMenu->actions().at(1)->setEnabled(false); // Disable Open menu
 }
 
 void MainWindow::dbClose()
@@ -276,7 +272,7 @@ void MainWindow::importNexus()
         hashresult = charUUID.result();
         charUUID.reset();
         QString shortHash = QString(hashresult.toHex().remove(0, 2 * hashresult.size() - 7));
-        query.prepare(QString("INSERT INTO taxa (taxon_id, name) VALUES (:taxon_id, :name)"));
+        query.prepare(QString("INSERT INTO taxa (taxon_GUUID, name) VALUES (:taxon_id, :name)"));
         query.bindValue(":taxon_id", shortHash);
         query.bindValue(":name", taxname);
         query.exec();
@@ -303,28 +299,33 @@ void MainWindow::importNexus()
         hashresult = charUUID.result();
         charUUID.reset();
         QString shortHash = QString(hashresult.toHex().remove(0, 2 * hashresult.size() - 7));
-        query.prepare(QString("INSERT INTO characters (char_id, label) VALUES (:char_id, :label)"));
+        query.prepare(QString("INSERT INTO characters (char_GUUID, label) VALUES (:char_id, :label)"));
         query.bindValue(":char_id", shortHash);
         query.bindValue(":label", label);
         if (!query.exec()) {
             qDebug() << "Error inserting " << label;
         }
 
+        if (!query.exec(QString("SELECT char_id FROM characters WHERE char_GUUID = '%1'").arg(shortHash))) {
+            qDebug() << "Error selecting " << shortHash;
+        }
+        query.next();
+        int charID = query.value(0).toInt();
+        qDebug() << "Char ID: " << charID;
         // Insert into the state table
         for (j = 0; j < nxreader.getNumStatesForChar(i); ++j) {
             QString stateLabel = QString(nxreader.getStateLabel(i, j).toLocal8Bit());
-            qDebug() << "Label: " << stateLabel;
             if (stateLabel != " ") {
                 query.prepare(QString("INSERT INTO states (character, label) VALUES (:character, :label)"));
                 //            query.bindValue(":state_id", ctr);
-                query.bindValue(":character", shortHash);
+                query.bindValue(":character", charID);
                 query.bindValue(":label", stateLabel);
                 query.exec();
                 ctr++;
             }
         }
-        query.exec(QString("INSERT INTO states (character, label) VALUES ('%1', '%2')").arg(shortHash, QString("missing")));
-        query.exec(QString("INSERT INTO states (character, label) VALUES ('%1', '%2')").arg(shortHash, QString("inapplicable")));
+        query.exec(QString("INSERT INTO states (character, label) VALUES (%1, '%2')").arg(charID).arg(QString("missing")));
+        query.exec(QString("INSERT INTO states (character, label) VALUES (%1, '%2')").arg(charID).arg(QString("inapplicable")));
         ctr++;
     }
 
@@ -333,12 +334,12 @@ void MainWindow::importNexus()
     for (i = 0; i < nxreader.getNtax(); ++i) {
         QString taxname = nxreader.getTaxLabel(i);
 
-        QString taxID;
-        QString charID;
+        int taxID;
+        int charID;
 
         query.exec(QString("SELECT taxon_id FROM taxa WHERE name = '%1'").arg(taxname));
         while (query.next()) {
-            taxID = query.value(0).toString();
+            taxID = query.value(0).toInt();
             qDebug() << taxID << " " << taxname;
         }
 
@@ -346,7 +347,7 @@ void MainWindow::importNexus()
             QString charlabel = nxreader.getCharLabel(j);
             query.exec(QString("SELECT char_id FROM characters WHERE rowid = %1").arg(j + 1));
             while (query.next()) {
-                charID = query.value(0).toString();
+                charID = query.value(0).toInt();
 //                qDebug() << "Char ID: " << charID;
             }
 
@@ -384,6 +385,30 @@ void MainWindow::importNexus()
     nxreader.closeNexusFile();
 }
 
+void MainWindow::exportNexus()
+{
+    std::ofstream nexout;
+
+    QFileDialog fopen;
+
+    nexout.open(fopen.getSaveFileName().toStdString());
+
+    NxsTaxaBlock *taxaBlk = new NxsTaxaBlock;
+    NxsAssumptionsBlock *assumptsBlk = new NxsAssumptionsBlock(taxaBlk);
+    NxsCharactersBlock *charsBlk = new NxsCharactersBlock(taxaBlk, assumptsBlk);
+
+    // Get the number of taxa and set it
+    taxaBlk->SetNtax(taxaTable->rowCount());
+
+    QSqlQuery query(db);
+
+    query.exec(QString("SELECT name FROM taxa"));
+    while (query.next()) {
+        taxaBlk->AddTaxonLabel(query.value(0).toString().toStdString());
+    }
+
+}
+
 void MainWindow::onDataChanged()
 {
     observationsTable->select();
@@ -412,7 +437,7 @@ void MainWindow::onTaxonSelected(const QModelIndex &index)
 void MainWindow::onObsFilterEdited(const QString &string)
 {
     QSqlQuery query(db);
-    query.exec(QString("SELECT char_id FROM characters WHERE label LIKE '%") + string + QString("%' "));
+    query.exec(QString("SELECT char_GUUID FROM characters WHERE label LIKE '%") + string + QString("%' "));
 
     // This conditional clears the filter if no string is input (i.e. when a filter is erased)
     if (string == "") {
@@ -422,17 +447,19 @@ void MainWindow::onObsFilterEdited(const QString &string)
     }
 
     query.next();
-    QString filter = "(character = '";
+    QString filter = "(observations.character = '";
     filter += (query.value(0).toString() + QString("' "));
     while (query.next()) {
-        filter += QString(" OR character = '");
+        filter += QString(" OR observations.character = '");
         filter += (query.value(0).toString() + QString("'"));
     }
     filter += QString(")");
 
     if (taxonFilter != "") {
-        filter += (QString(" AND (taxon = '%1')").arg(taxonFilter));
+        filter += (QString(" AND (observations.taxon = '%1')").arg(taxonFilter));
     }
+
+    qDebug() << filter;
 
     observationsTable->setFilter(filter);
     observationsTable->select();
@@ -503,22 +530,19 @@ void MainWindow::showInitDialog()
     initDialog.exec();
 }
 
-void MainWindow::filterObsTable(QString filterValue)
-{
-    observationsTable->setFilter(filterValue);
-}
-
 void MainWindow::createMainTables()
 {
     QSqlQuery query(db);
 
     query.exec("CREATE TABLE taxa ("
-                "taxon_id VARCHAR(7) UNIQUE PRIMARY KEY,"
+                "taxon_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                "taxon_GUUID VARCHAR(7) UNIQUE,"
                 "name VARCHAR(100),"
                 "author VARCHAR(100))");
 
     query.exec("CREATE TABLE characters ("
-                "char_id VARCHAR(7) UNIQUE PRIMARY KEY, "
+                "char_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                "char_GUUID VARCHAR(7) UNIQUE,"
                 "label MEDIUMTEXT,"
                 "source MEDIUMTEXT,"
                 "notes MEDIUMTEXT)");
@@ -532,8 +556,8 @@ void MainWindow::createMainTables()
 
     query.exec("CREATE TABLE observations ("
                 "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                "taxon VARCHAR(7),"
-                "character VARCHAR(7),"
+                "taxon INTEGER,"
+                "character INTEGER,"
                 "state INTEGER,"
                 "notes MEDIUMTEXT,"
                 "FOREIGN KEY (taxon) REFERENCES taxa (taxon_id) ON UPDATE CASCADE,"
@@ -567,10 +591,15 @@ void MainWindow::configMainTables()
     observationsTable->setTable("observations");
     observationsTable->setEditStrategy(QSqlRelationalTableModel::OnFieldChange);
 
-
     observationsTable->setRelation(1, QSqlRelation("taxa", "taxon_id", "name"));
     observationsTable->setRelation(2, QSqlRelation("characters", "char_id", "label"));
     observationsTable->setRelation(3, QSqlRelation("states", "state_id", "label"));
+
+//    observationsTable->setHeaderData(0, Qt::Horizontal, tr("ID"));
+//    observationsTable->setHeaderData(1, Qt::Horizontal, tr("Taxon"));
+//    observationsTable->setHeaderData(2, Qt::Horizontal, tr("Character"));
+//    observationsTable->setHeaderData(3, Qt::Horizontal, tr("State"));
+//    observationsTable->setHeaderData(4, Qt::Horizontal, tr("Notes"));
 
     taxaTableView->setModel(taxaTable);
     obsTableView->setModel(observationsTable);
@@ -579,13 +608,11 @@ void MainWindow::configMainTables()
     charTable->select();
     observationsTable->select();
 
-    connect(observationsTable, &QSqlRelationalTableModel::dataChanged, obsTableView, &QTableView::resizeColumnsToContents);
-
     // Display the tables
-    taxaTableView->setColumnHidden(0, true);
-    taxaTableView->setColumnHidden(2, true);
-    //    taxaTableView->show();
-    obsTableView->setColumnHidden(0, true);
+//    taxaTableView->setColumnHidden(0, true);
+//    taxaTableView->setColumnHidden(2, true);
+//    //    taxaTableView->show();
+//    obsTableView->setColumnHidden(0, true);
     //    obsTableView->show();
     //    obsTableView->setSortingEnabled(true);
 
@@ -594,6 +621,7 @@ void MainWindow::configMainTables()
 
     connect(taxaTableView, &QAbstractItemView::clicked, this, &MainWindow::onTaxonSelected);
     connect(obsFilterField, &QLineEdit::textEdited, this, &MainWindow::onObsFilterEdited);
+    connect(observationsTable, &QSqlRelationalTableModel::dataChanged, obsTableView, &QTableView::resizeColumnsToContents);
 
 //    taxaTableView->resize(20, );
 }

@@ -1,18 +1,21 @@
 #include <QCryptographicHash>
+#include <QDataWidgetMapper>
+#include <QDialogButtonBox>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMessageBox>
 #include <QPushButton>
+#include <QSqlDatabase>
 #include <QSqlRecord>
 #include <QSqlRelationalTableModel>
-#include <QTableView>
-#include <QTextEdit>
-#include <QDataWidgetMapper>
 #include <QSqlRelationalDelegate>
 #include <QSqlError>
+#include <QTableView>
+#include <QTextEdit>
 
 #include "charactereditorwindow.h"
 #include "mainwindow.h"
@@ -27,6 +30,7 @@ CharacterEditorWindow::CharacterEditorWindow(QWidget *parent) : QWidget(parent)
     newChar = new QPushButton(tr("New character"), this);
     connect(newChar, &QPushButton::released, this, &CharacterEditorWindow::newCharacterAction);
     deleteChar = new QPushButton(tr("Delete character"), this);
+    connect(deleteChar, &QPushButton::released, this, &CharacterEditorWindow::deleteCharAction);
 
     charWindLayout->addWidget(newChar, 8, 0);
     charWindLayout->addWidget(deleteChar, 9, 0);
@@ -36,21 +40,30 @@ CharacterEditorWindow::CharacterEditorWindow(QWidget *parent) : QWidget(parent)
     charTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     charTable_p = nullptr;
-}
 
-void CharacterEditorWindow::setCharTable(QSqlRelationalTableModel *charTable, QSqlRelationalTableModel *statesTable)
-{
-    charTable_p = charTable;
-    charTableView->setModel(charTable_p);
-    charTableView->resizeColumnsToContents();
-//    setMinimumWidth(charTableView->horizontalHeader()->length());
-    charTable_p->select();
-
-    charTableView->setColumnHidden(0, true);
-
-    statesTable_p = statesTable;
+    setCharTable();
 
     initEditorArea();
+}
+
+void CharacterEditorWindow::setCharTable()
+{
+//    charTable_p = charTable;
+    charTable_p = new QSqlRelationalTableModel(this, QSqlDatabase::database());
+    charTable_p->setTable("characters");
+    charTableView->setModel(charTable_p);
+    charTable_p->select();
+    charTableView->resizeColumnsToContents();
+
+    charTableView->setColumnHidden(0, true);
+    charTableView->setColumnHidden(1, true);
+    charTableView->setColumnHidden(3, true);
+    charTableView->setColumnHidden(4, true);
+
+    charTableView->selectRow(0);
+
+    statesTable_p = new QSqlRelationalTableModel(this, QSqlDatabase::database());
+    statesTable_p->setTable("states");
 }
 
 void CharacterEditorWindow::initEditorArea()
@@ -83,7 +96,7 @@ void CharacterEditorWindow::initEditorArea()
     // Set up the states table:
     statesTable->setModel(statesTable_p);
     statesTable->setColumnHidden(0, true);
-    statesTable->setColumnHidden(1, true);
+    statesTable->setColumnHidden(2, true);
     statesTable_p->select();
 
     mapper->toFirst();
@@ -103,6 +116,8 @@ void CharacterEditorWindow::initEditorArea()
     charWindLayout->addWidget(submitButton, 8, 1);
     connect(submitButton, &QPushButton::released, this, &CharacterEditorWindow::commitCharChange);
 
+//    charTable_p->row
+
 //    editorArea->setLayout(editorLayout);
 //    charWindLayout->addWidget(editorArea, 0, 1);
 
@@ -111,16 +126,44 @@ void CharacterEditorWindow::initEditorArea()
     statesTable_p->setFilter(QString("states.character = '%1'").arg(charID));
 }
 
+void CharacterEditorWindow::deleteCharAction()
+{
+    QMessageBox checkDelete;
+    checkDelete.setIcon(QMessageBox::Critical);
+    checkDelete.setText("Are you sure you want to delete this character?");
+    checkDelete.setInformativeText("Deleting characters is not best practice. If you want to exclude a character from analyses, you should toggle its inclusion status.");
+    checkDelete.setStandardButtons(QMessageBox::Abort);
+    checkDelete.setDefaultButton(QMessageBox::Abort);
+
+    int ret = checkDelete.exec();
+
+    int row;
+    switch (ret) {
+    case QMessageBox::Abort:
+        break;
+    case QMessageBox::Ignore:
+        row = charTableView->currentIndex().row();
+        charTable_p->removeRow(row);
+        charTable_p->select();
+        if (row < charTable_p->rowCount()) {
+            charTableView->selectRow(row);
+        } else {
+            charTableView->selectRow(row - 1);
+        }
+        onCharacterClicked(charTableView->currentIndex());
+        break;
+    default:
+        break;
+    }
+}
+
 void CharacterEditorWindow::newCharacterAction()
 {
     mapper->toLast();
     int row = mapper->currentIndex();
     qDebug() << "Row: " << row;
 
-//    labelField->clear();
-//    sourceField->clear();
-//    descripField->clear();
-//    statesTable_p->setFilter(QString("x"));
+    statesTable_p->setFilter("x"); // Temporarily disable filter
 
     QSqlQuery query;
     if(!query.exec("INSERT INTO characters (char_GUUID, label) VALUES (NULL, 'new character')")) {
@@ -140,6 +183,7 @@ void CharacterEditorWindow::newCharacterAction()
     query.exec(QString("INSERT INTO states (character, label) VALUES (%1, 'missing')").arg(newID));
     query.exec(QString("INSERT INTO states (character, label) VALUES (%1, 'inapplicable')").arg(newID));
 
+    statesTable_p->setFilter(QString("character = %1").arg(newID)); //Re-enable filter on new characters
 //    mapper->submit();
 
     charTableView->setEnabled(false);
@@ -154,13 +198,9 @@ void CharacterEditorWindow::newCharacterAction()
 
 void CharacterEditorWindow::commitCharChange()
 {
-
     mapper->submit();
+
     if (charTableView->isEnabled() == false) {
-
-
-        qDebug() << "Going down the dark path";
-
         mapper->toLast();
         int row = mapper->currentIndex();
 
@@ -209,10 +249,7 @@ void CharacterEditorWindow::commitCharChange()
 
         charTable_p->select();
         statesTable_p->select();
-//        mapper->submit();
     }
-
-//    mapper->submit();
 }
 
 void CharacterEditorWindow::onCharacterClicked(const QModelIndex &index)
@@ -221,6 +258,7 @@ void CharacterEditorWindow::onCharacterClicked(const QModelIndex &index)
 
     QString charID;
     charID = charTable_p->record(index.row()).value(QString("char_id")).toString();
+    statesTable_p->filter().clear();
     statesTable_p->setFilter(QString("character = '%1'").arg(charID));
 }
 

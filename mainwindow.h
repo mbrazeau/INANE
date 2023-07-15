@@ -10,6 +10,7 @@ class QTableView;
 class QListView;
 class QSqlRelationalTableModel;
 class QLineEdit;
+class MenuManager;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -43,6 +44,7 @@ private:
 
     QMenu *fileMenu;
     QMenu *editMenu;
+    QMenu *taxaMenu;
     QMenu *charsMenu;
 
     QSqlDatabase db;
@@ -59,6 +61,8 @@ private:
     QTableView *stateTableView;
 
     QString path;
+
+    MenuManager *menuManager;
 
 private slots:
 

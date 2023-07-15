@@ -9,6 +9,7 @@ SOURCES += \
     compdatabase.cpp \
     main.cpp \
     mainwindow.cpp \
+    menumanager.cpp \
     nexusreader.cpp \
     observationtable.cpp \
     sqllistview.cpp \
@@ -18,6 +19,7 @@ HEADERS += \
     charactereditorwindow.h \
     compdatabase.h \
     mainwindow.h \
+    menumanager.h \
     nexusreader.h \
     observationtable.h \
     sqllistview.h \

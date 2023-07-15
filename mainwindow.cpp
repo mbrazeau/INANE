@@ -27,6 +27,7 @@
 #include <iostream>
 
 #include "mainwindow.h"
+#include "menumanager.h"
 #include "nexusreader.h"
 #include "charactereditorwindow.h"
 
@@ -47,6 +48,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     resize(width, height);
 
     // Set up the interface
+    menuManager = new MenuManager(*menuBar(), this);
     createMenus();
 
     // Do the basic interface display setup with table views.
@@ -97,7 +99,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 void MainWindow::createMenus()
 {
     // File menu
-     fileMenu = menuBar()->addMenu(tr("&File"));
+    fileMenu = menuManager->addMenu("File");//menuBar()->addMenu(tr("&File"));
+
 
      QAction *newAct = new QAction(tr("&New Database..."), this);
      fileMenu->addAction(newAct);
@@ -127,7 +130,12 @@ void MainWindow::createMenus()
 //     connect(exportAct, &QAction::triggered, this, &MainWindow::fileExport);
 
      // Edit menu
-     editMenu = menuBar()->addMenu(tr("&Edit"));
+     taxaMenu = menuBar()->addMenu(tr("&Taxa"));
+
+     // Taxa menu
+     QAction *newTaxon = new QAction(tr("&New Taxon..."), this);
+     taxaMenu->addAction(newTaxon);
+
 
      // Characters menu
      charsMenu = menuBar()->addMenu(tr("&Characters"));
@@ -135,12 +143,12 @@ void MainWindow::createMenus()
      charsMenu->addAction(editCharsAct);
      connect(editCharsAct, &QAction::triggered, this, &MainWindow::openCharTableView);
 
-     QAction *editStatesAct = new QAction(tr("Edit states..."), this);
-     charsMenu->addAction(editStatesAct);
-     connect(editStatesAct, &QAction::triggered, this, &MainWindow::openStateTableView);
+//     QAction *act = charsMenu->actions().at(0);
+//     act->setDisabled(true);
+//     QAction *editStatesAct = new QAction(tr("Edit states..."), this);
+//     charsMenu->addAction(editStatesAct);
+//     connect(editStatesAct, &QAction::triggered, this, &MainWindow::openStateTableView);
 
-     QAction *newTaxon = new QAction(tr("&New Taxon..."), this);
-     editMenu->addAction(newTaxon);
 
      // Help
      QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -324,8 +332,8 @@ void MainWindow::importNexus()
                 ctr++;
             }
         }
-        query.exec(QString("INSERT INTO states (character, label) VALUES (%1, '%2')").arg(charID).arg(QString("missing")));
-        query.exec(QString("INSERT INTO states (character, label) VALUES (%1, '%2')").arg(charID).arg(QString("inapplicable")));
+        query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('?', %1, '%2')").arg(charID).arg(QString("missing")));
+        query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('-', %1, '%2')").arg(charID).arg(QString("inapplicable")));
         ctr++;
     }
 
@@ -468,7 +476,6 @@ void MainWindow::onObsFilterEdited(const QString &string)
 void MainWindow::openCharTableView()
 {
     CharacterEditorWindow *charEditor = new CharacterEditorWindow;
-    charEditor->setCharTable(charTable, stateTable);
     connect(charTable, &QSqlRelationalTableModel::dataChanged, this, &MainWindow::onDataChanged);
     connect(stateTable, &QSqlRelationalTableModel::dataChanged, this, &MainWindow::onDataChanged);
     charEditor->show();
@@ -535,31 +542,34 @@ void MainWindow::createMainTables()
     QSqlQuery query(db);
 
     query.exec("CREATE TABLE taxa ("
-                "taxon_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                "taxon_id    INTEGER PRIMARY KEY AUTOINCREMENT,"
                 "taxon_GUUID VARCHAR(7) UNIQUE,"
-                "name VARCHAR(100),"
-                "author VARCHAR(100))");
+                "name        VARCHAR(100),"
+                "author      VARCHAR(100))");
 
     query.exec("CREATE TABLE characters ("
-                "char_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                "char_id    INTEGER PRIMARY KEY AUTOINCREMENT,"
                 "char_GUUID VARCHAR(7) UNIQUE,"
-                "label MEDIUMTEXT,"
-                "source MEDIUMTEXT,"
-                "notes MEDIUMTEXT)");
+                "label      MEDIUMTEXT,"
+                "source     MEDIUMTEXT,"
+                "notes      MEDIUMTEXT)");
 
     query.exec("CREATE TABLE states ("
-                "state_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                "character VARCHAR(7),"
-                "label VARCHAR(200),"
+                "state_id   INTEGER PRIMARY KEY AUTOINCREMENT,"
+                "symbol     VARCHAR(1),"
+                "character  VARCHAR(7),"
+                "label      VARCHAR(200),"
                 "definition MEDIUMTEXT,"
+                "UNIQUE (character, label),"
+                "UNIQUE (character, symbol),"
                 "FOREIGN KEY (character) REFERENCES characters (char_id))");
 
     query.exec("CREATE TABLE observations ("
-                "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                "taxon INTEGER,"
+                "id        INTEGER PRIMARY KEY AUTOINCREMENT,"
+                "taxon     INTEGER,"
                 "character INTEGER,"
-                "state INTEGER,"
-                "notes MEDIUMTEXT,"
+                "state     INTEGER,"
+                "notes     MEDIUMTEXT,"
                 "FOREIGN KEY (taxon) REFERENCES taxa (taxon_id) ON UPDATE CASCADE,"
                 "FOREIGN KEY (state) REFERENCES states (state_id) ON UPDATE CASCADE,"
                 "FOREIGN KEY (character) REFERENCES characters (char_id) ON UPDATE CASCADE)");
@@ -575,8 +585,9 @@ void MainWindow::configMainTables()
     taxaTable->setTable("taxa");
     taxaTable->setEditStrategy(QSqlRelationalTableModel::OnFieldChange);
     taxaTable->setHeaderData(0, Qt::Horizontal, tr("ID"));
-    taxaTable->setHeaderData(1, Qt::Horizontal, tr("Name"));
-    taxaTable->setHeaderData(2, Qt::Horizontal, tr("Author"));
+    taxaTable->setHeaderData(1, Qt::Horizontal, tr("GUUID"));
+    taxaTable->setHeaderData(2, Qt::Horizontal, tr("Name"));
+    taxaTable->setHeaderData(3, Qt::Horizontal, tr("Author"));
 
     charTable = new QSqlRelationalTableModel(this, db);
     charTable->setTable("characters");
@@ -595,11 +606,11 @@ void MainWindow::configMainTables()
     observationsTable->setRelation(2, QSqlRelation("characters", "char_id", "label"));
     observationsTable->setRelation(3, QSqlRelation("states", "state_id", "label"));
 
-//    observationsTable->setHeaderData(0, Qt::Horizontal, tr("ID"));
-//    observationsTable->setHeaderData(1, Qt::Horizontal, tr("Taxon"));
-//    observationsTable->setHeaderData(2, Qt::Horizontal, tr("Character"));
-//    observationsTable->setHeaderData(3, Qt::Horizontal, tr("State"));
-//    observationsTable->setHeaderData(4, Qt::Horizontal, tr("Notes"));
+    observationsTable->setHeaderData(0, Qt::Horizontal, tr("ID"));
+    observationsTable->setHeaderData(1, Qt::Horizontal, tr("Taxon"));
+    observationsTable->setHeaderData(2, Qt::Horizontal, tr("Character"));
+    observationsTable->setHeaderData(3, Qt::Horizontal, tr("State"));
+    observationsTable->setHeaderData(4, Qt::Horizontal, tr("Notes"));
 
     taxaTableView->setModel(taxaTable);
     obsTableView->setModel(observationsTable);
@@ -609,10 +620,10 @@ void MainWindow::configMainTables()
     observationsTable->select();
 
     // Display the tables
-//    taxaTableView->setColumnHidden(0, true);
-//    taxaTableView->setColumnHidden(2, true);
+    taxaTableView->setColumnHidden(0, true);
+    taxaTableView->setColumnHidden(1, true);
 //    //    taxaTableView->show();
-//    obsTableView->setColumnHidden(0, true);
+    obsTableView->setColumnHidden(0, true);
     //    obsTableView->show();
     //    obsTableView->setSortingEnabled(true);
 

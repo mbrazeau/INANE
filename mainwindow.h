@@ -10,7 +10,7 @@ class QTableView;
 class QListView;
 class QSqlRelationalTableModel;
 class QLineEdit;
-class MenuManager;
+class MainMenu;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -22,17 +22,18 @@ public slots:
     void onTaxaChanged();
     void onTaxonSelected(const QModelIndex &index);
     void onObsFilterEdited(const QString &string);
-
-private:
-    void createMenus();
-    void aboutMenu();
-    void showMessage(QString message);
     void dbNew();
     void dbOpen();
     void dbClose();
+    void dbSave();
     void importNexus();
     void exportNexus();
     void openCharTableView();
+    void aboutMenu();
+
+private:
+    void createMenus();
+    void showMessage(QString message);
     void openStateTableView();
     void showInitDialog();
     void createMainTables();
@@ -62,7 +63,7 @@ private:
 
     QString path;
 
-    MenuManager *menuManager;
+    MainMenu *mainMenu;
 
 private slots:
 

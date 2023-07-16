@@ -8,8 +8,8 @@ SOURCES += \
     charactereditorwindow.cpp \
     compdatabase.cpp \
     main.cpp \
+    mainmenu.cpp \
     mainwindow.cpp \
-    menumanager.cpp \
     nexusreader.cpp \
     observationtable.cpp \
     sqllistview.cpp \
@@ -18,8 +18,8 @@ SOURCES += \
 HEADERS += \
     charactereditorwindow.h \
     compdatabase.h \
+    mainmenu.h \
     mainwindow.h \
-    menumanager.h \
     nexusreader.h \
     observationtable.h \
     sqllistview.h \

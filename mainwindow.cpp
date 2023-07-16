@@ -27,8 +27,8 @@
 #include <iostream>
 
 #include "mainwindow.h"
-#include "menumanager.h"
 #include "nexusreader.h"
+#include "mainmenu.h"
 #include "charactereditorwindow.h"
 
 
@@ -48,7 +48,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     resize(width, height);
 
     // Set up the interface
-    menuManager = new MenuManager(*menuBar(), this);
     createMenus();
 
     // Do the basic interface display setup with table views.
@@ -98,64 +97,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
 void MainWindow::createMenus()
 {
-    // File menu
-    fileMenu = menuManager->addMenu("File");//menuBar()->addMenu(tr("&File"));
-
-
-     QAction *newAct = new QAction(tr("&New Database..."), this);
-     fileMenu->addAction(newAct);
-     newAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_N));
-     connect(newAct, &QAction::triggered, this, &MainWindow::dbNew);
-
-     QAction *openAct = new QAction(tr("&Open Database..."), this);
-     fileMenu->addAction(openAct);
-     openAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_O));
-     connect(openAct, &QAction::triggered, this, &MainWindow::dbOpen);
-
-     QAction *saveAct = new QAction(tr("&Save Database..."), this);
-     fileMenu->addAction(saveAct);
-     saveAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_S));
-//     connect(saveAct, &QAction::triggered, this, &MainWindow::dbSave);
-
-     QAction *closeAct = new QAction(tr("&Close Database..."), this);
-     fileMenu->addAction(closeAct);
-     connect(closeAct, &QAction::triggered, this, &MainWindow::dbClose);
-
-     QAction *importAct = new QAction(tr("&Import Nexus..."), this);
-     fileMenu->addAction(importAct);
-     connect(importAct, &QAction::triggered, this, &MainWindow::importNexus);
-
-     QAction *exportAct = new QAction(tr("&Export Nexus..."), this);
-     fileMenu->addAction(exportAct);
-//     connect(exportAct, &QAction::triggered, this, &MainWindow::fileExport);
-
-     // Edit menu
-     taxaMenu = menuBar()->addMenu(tr("&Taxa"));
-
-     // Taxa menu
-     QAction *newTaxon = new QAction(tr("&New Taxon..."), this);
-     taxaMenu->addAction(newTaxon);
-
-
-     // Characters menu
-     charsMenu = menuBar()->addMenu(tr("&Characters"));
-     QAction *editCharsAct = new QAction(tr("Edit characters..."), this);
-     charsMenu->addAction(editCharsAct);
-     connect(editCharsAct, &QAction::triggered, this, &MainWindow::openCharTableView);
-
-//     QAction *act = charsMenu->actions().at(0);
-//     act->setDisabled(true);
-//     QAction *editStatesAct = new QAction(tr("Edit states..."), this);
-//     charsMenu->addAction(editStatesAct);
-//     connect(editStatesAct, &QAction::triggered, this, &MainWindow::openStateTableView);
-
-
-     // Help
-     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
-
-     QAction *aboutAction = new QAction(tr("&About"), this);
-     helpMenu->addAction(aboutAction);
-     connect(aboutAction, &QAction::triggered, this, &MainWindow::aboutMenu);
+    mainMenu = new MainMenu(this);
+    mainMenu->setDataMenusEnabled(false);
 }
 
 void MainWindow::aboutMenu()
@@ -198,26 +141,6 @@ void MainWindow::dbNew()
 
     createMainTables();
     configMainTables();
-
-//    unsigned int taxcount = 1;
-//    unsigned int charcount = 1;
-//    bool ok = false;
-
-//    // First get the dataset dimensions
-//    taxcount = QInputDialog::getInt(this, tr("Add taxon rows"), tr("Enter a number of taxa"), 3, 1, INT_MAX, 1, &ok);
-//    if (!ok) {
-//        showMessage(tr("You must enter a valid number of taxa"));
-//        return;
-//    }
-//    charcount = QInputDialog::getInt(this, tr("Add character columns"), tr("Enter a number of characters"), 1, 1, INT_MAX, 1, &ok);
-//    if (!ok) {
-//        charcount = 0;
-//        showMessage(tr("No characters added"));
-//        return;
-//    }
-
-//    fileMenu->actions().at(0)->setEnabled(false); // Disable New menu
-//    fileMenu->actions().at(1)->setEnabled(false); // Disable Open menu
 }
 
 void MainWindow::dbOpen()
@@ -239,6 +162,11 @@ void MainWindow::dbClose()
 {
     fileMenu->actions().at(0)->setEnabled(true); // Re-enable New menu
     fileMenu->actions().at(1)->setEnabled(true); // Re-enable Open menu
+}
+
+void MainWindow::dbSave()
+{
+
 }
 
 void MainWindow::importNexus()
@@ -401,20 +329,53 @@ void MainWindow::exportNexus()
 
     nexout.open(fopen.getSaveFileName().toStdString());
 
-    NxsTaxaBlock *taxaBlk = new NxsTaxaBlock;
-    NxsAssumptionsBlock *assumptsBlk = new NxsAssumptionsBlock(taxaBlk);
-    NxsCharactersBlock *charsBlk = new NxsCharactersBlock(taxaBlk, assumptsBlk);
+    if (!nexout.is_open()) {
+        return; // TODO: Put in an error?
+    }
 
-    // Get the number of taxa and set it
-    taxaBlk->SetNtax(taxaTable->rowCount());
+    nexout << QString("#NEXUS\n\n").toStdString();
 
-    QSqlQuery query(db);
+    QSqlQuery query;
+
+
+
+
+    nexout << "BEGIN TAXA;\n";
+
+    query.exec(QString("SELECT COUNT(*) FROM taxa"));
+    query.next();
+    int ntax = query.value(0).toInt();
+    nexout << QString("DIMENSIONS NTAX = %1;\nTAXLABELS\n").arg(ntax).toStdString();
 
     query.exec(QString("SELECT name FROM taxa"));
     while (query.next()) {
-        taxaBlk->AddTaxonLabel(query.value(0).toString().toStdString());
+        QString label;
+        label = query.value(0).toString();
+        nexout << NxsString::GetEscaped(label.toStdString());
+        nexout << "\n";
     }
 
+    nexout << ";\nEND;\n\n";
+
+    nexout << "BEGIN CHARACTERS;\n";
+    query.exec(QString("SELECT COUNT(*) FROM characters"));
+    query.next();
+    int nchar = query.value(0).toInt();
+    query.exec(QString("SELECT label FROM characters"));
+    nexout << QString("DIMENSIONS NCHAR = %1;\nCHARSTATELABELS\n").arg(nchar).toStdString();
+    int ctr = 1;
+    while (query.next()) {
+        QString label;
+        label = query.value(0).toString();
+        nexout << QString(" %1 ").arg(ctr).toStdString();
+        ctr++;
+        nexout << NxsString::GetEscaped(label.toStdString());
+        nexout << "\n";
+    }
+
+    nexout << ";\nEND;\n";
+
+    nexout.close();
 }
 
 void MainWindow::onDataChanged()
@@ -545,6 +506,7 @@ void MainWindow::createMainTables()
                 "taxon_id    INTEGER PRIMARY KEY AUTOINCREMENT,"
                 "taxon_GUUID VARCHAR(7) UNIQUE,"
                 "name        VARCHAR(100),"
+                "included    INT(1),"
                 "author      VARCHAR(100))");
 
     query.exec("CREATE TABLE characters ("
@@ -552,6 +514,7 @@ void MainWindow::createMainTables()
                 "char_GUUID VARCHAR(7) UNIQUE,"
                 "label      MEDIUMTEXT,"
                 "source     MEDIUMTEXT,"
+                "included   INT(1),"
                 "notes      MEDIUMTEXT)");
 
     query.exec("CREATE TABLE states ("

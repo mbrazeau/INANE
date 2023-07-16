@@ -37,9 +37,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     // Initialize variables.
     taxonFilter = "";
 
-    // Initiate database
-    db = QSqlDatabase::addDatabase("QSQLITE");
-
     // Initialise main window dimensions so it doesn't look stupid when it first opens up
     QRect rec;
     rec = QGuiApplication::primaryScreen()->geometry();
@@ -132,12 +129,17 @@ void MainWindow::dbNew()
     QFileDialog fopen;
 
     path = fopen.getSaveFileName();
+    if (path.isEmpty()) {
+        return;
+    }
 
+    // Initiate database
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
     db.setDatabaseName(path);
     if (!db.open()) {
         qDebug() << "No database!";
     }
-    qDebug() << db.databaseName();
+//    qDebug() << db.databaseName();
 
     createMainTables();
     configMainTables();
@@ -149,8 +151,13 @@ void MainWindow::dbOpen()
 
     path = fopen.getOpenFileName();
 
+    if (path.isEmpty()) {
+        return;
+    }
+
+    // Initiate database
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
     db.setDatabaseName(path);
-    qDebug() << db.databaseName();
     if (!db.open()) {
         qDebug() << "No database!";
     }
@@ -160,8 +167,18 @@ void MainWindow::dbOpen()
 
 void MainWindow::dbClose()
 {
-    fileMenu->actions().at(0)->setEnabled(true); // Re-enable New menu
-    fileMenu->actions().at(1)->setEnabled(true); // Re-enable Open menu
+//    {
+//    QString connection = QSqlDatabase::defaultConnection;
+//        QSqlDatabase db = QSqlDatabase::database();
+//        db.close();
+//        db = QSqlDatabase();
+//        db.removeDatabase(connection);
+////    }
+
+    mainMenu->setInFileMenusEnabled(true);
+    mainMenu->setDataMenusEnabled(false);
+//    fileMenu->actions().at(0)->setEnabled(true); // Re-enable New menu
+//    fileMenu->actions().at(1)->setEnabled(true); // Re-enable Open menu
 }
 
 void MainWindow::dbSave()
@@ -171,15 +188,23 @@ void MainWindow::dbSave()
 
 void MainWindow::importNexus()
 {
-    QFileDialog fopen;
-    // TODO: Check for existing data??
-    QString nexusfilename;
+//    if (QSqlDatabase::database().databaseName() == "") {
+//        QMessageBox::critical(nullptr, "No database exists", "Create a new empty database before attempting to import files.");
+//        return;
+//    }
 
+    QFileDialog fopen;
+    QString nexusfilename;
     NexusReader nxreader;
 
-    nexusfilename = fopen.getOpenFileName();
+    nexusfilename = fopen.getOpenFileName(nullptr, QString("Choose a Nexus file"));
 
     if (nexusfilename.isEmpty()) {
+        return;
+    }
+
+    dbNew();
+    if (path.isEmpty()) {
         return;
     }
 
@@ -405,7 +430,7 @@ void MainWindow::onTaxonSelected(const QModelIndex &index)
 
 void MainWindow::onObsFilterEdited(const QString &string)
 {
-    QSqlQuery query(db);
+    QSqlQuery query;
     query.exec(QString("SELECT char_GUUID FROM characters WHERE label LIKE '%") + string + QString("%' "));
 
     // This conditional clears the filter if no string is input (i.e. when a filter is erased)
@@ -500,7 +525,7 @@ void MainWindow::showInitDialog()
 
 void MainWindow::createMainTables()
 {
-    QSqlQuery query(db);
+    QSqlQuery query;
 
     query.exec("CREATE TABLE taxa ("
                 "taxon_id    INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -544,7 +569,7 @@ void MainWindow::createMainTables()
 
 void MainWindow::configMainTables()
 {
-    taxaTable = new QSqlRelationalTableModel(this, db);
+    taxaTable = new QSqlRelationalTableModel(this, QSqlDatabase::database());
     taxaTable->setTable("taxa");
     taxaTable->setEditStrategy(QSqlRelationalTableModel::OnFieldChange);
     taxaTable->setHeaderData(0, Qt::Horizontal, tr("ID"));
@@ -552,16 +577,16 @@ void MainWindow::configMainTables()
     taxaTable->setHeaderData(2, Qt::Horizontal, tr("Name"));
     taxaTable->setHeaderData(3, Qt::Horizontal, tr("Author"));
 
-    charTable = new QSqlRelationalTableModel(this, db);
+    charTable = new QSqlRelationalTableModel(this, QSqlDatabase::database());
     charTable->setTable("characters");
     charTable->setEditStrategy(QSqlRelationalTableModel::OnFieldChange);
 
-    stateTable = new QSqlRelationalTableModel(this, db);
+    stateTable = new QSqlRelationalTableModel(this, QSqlDatabase::database());
     stateTable->setTable("states");
     stateTable->setEditStrategy(QSqlRelationalTableModel::OnFieldChange);
     stateTable->setRelation(1, QSqlRelation("characters", "char_id", "label"));
 
-    observationsTable = new QSqlRelationalTableModel(this, db);
+    observationsTable = new QSqlRelationalTableModel(this, QSqlDatabase::database());
     observationsTable->setTable("observations");
     observationsTable->setEditStrategy(QSqlRelationalTableModel::OnFieldChange);
 
@@ -597,6 +622,8 @@ void MainWindow::configMainTables()
     connect(obsFilterField, &QLineEdit::textEdited, this, &MainWindow::onObsFilterEdited);
     connect(observationsTable, &QSqlRelationalTableModel::dataChanged, obsTableView, &QTableView::resizeColumnsToContents);
 
+    mainMenu->setDataMenusEnabled(true);
+    mainMenu->setInFileMenusEnabled(false);
 //    taxaTableView->resize(20, );
 }
 

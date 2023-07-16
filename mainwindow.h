@@ -48,7 +48,7 @@ private:
     QMenu *taxaMenu;
     QMenu *charsMenu;
 
-    QSqlDatabase db;
+//    QSqlDatabase db;
 
     QSqlRelationalTableModel *taxaTable;
     QSqlRelationalTableModel *charTable;

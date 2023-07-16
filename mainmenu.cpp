@@ -7,6 +7,7 @@
 MainMenu::MainMenu(MainWindow *parent) : QMenuBar(parent)
 {
     dataMenuActions.clear();
+    inFileActionsList.clear();
 
     // File menu
     m_fileMenu = addMenu(tr("&File"));
@@ -14,11 +15,13 @@ MainMenu::MainMenu(MainWindow *parent) : QMenuBar(parent)
     m_fileNewDb = new QAction(tr("&New Database..."), this);
     m_fileMenu->addAction(m_fileNewDb);
     m_fileNewDb->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_N));
+    inFileActionsList.push_back(m_fileNewDb);
     connect(m_fileNewDb, &QAction::triggered, parent, &MainWindow::dbNew);
 
     m_fileOpenDb = new QAction(tr("&Open Database..."), this);
     m_fileMenu->addAction(m_fileOpenDb);
     m_fileOpenDb->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_O));
+    inFileActionsList.push_back(m_fileOpenDb);
     connect(m_fileOpenDb, &QAction::triggered, parent, &MainWindow::dbOpen);
 
     m_fileSaveDb = new QAction(tr("&Save Database..."), this);
@@ -31,11 +34,14 @@ MainMenu::MainMenu(MainWindow *parent) : QMenuBar(parent)
     m_fileMenu->addAction(m_fileCloseDb);
     connect(m_fileCloseDb, &QAction::triggered, parent, &MainWindow::dbClose);
 
+    m_fileMenu->addSeparator();
+
     //    m_fileImport = new QMenu(tr("Import"), this);
     m_fileImport = m_fileMenu->addMenu(tr("&Import"));
 
     m_fileImportNex = new QAction(tr("&Nexus..."), this);
     m_fileImport->addAction(m_fileImportNex);
+    inFileActionsList.push_back(m_fileImportNex);
     connect(m_fileImportNex, &QAction::triggered, parent, &MainWindow::importNexus);
 
     m_fileExport = m_fileMenu->addMenu(tr("Export"));
@@ -77,6 +83,14 @@ MainMenu::MainMenu(MainWindow *parent) : QMenuBar(parent)
 void MainMenu::setDataMenusEnabled(bool enable)
 {
     QListIterator<QAction *> it(dataMenuActions);
+    while (it.hasNext()) {
+        it.next()->setEnabled(enable);
+    }
+}
+
+void MainMenu::setInFileMenusEnabled(bool enable)
+{
+    QListIterator<QAction *> it(inFileActionsList);
     while (it.hasNext()) {
         it.next()->setEnabled(enable);
     }

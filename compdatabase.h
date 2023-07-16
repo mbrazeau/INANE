@@ -14,8 +14,8 @@ public:
     bool addTaxon(QString label);
     bool addCharacter(QString label);
 
-    QSqlQuery       *query;
-    QSqlDatabase    &database();
+//    QSqlQuery       *query;
+//    QSqlDatabase    &database();
 };
 
 #endif // COMPDATABASE_H

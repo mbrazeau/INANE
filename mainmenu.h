@@ -12,10 +12,12 @@ public:
     MainMenu(MainWindow *parent);
 
     void setDataMenusEnabled(bool);
+    void setInFileMenusEnabled(bool);
 
 private:
 
     QList<QAction *> dataMenuActions;
+    QList<QAction *> inFileActionsList;
     // File menu
     QMenu   *m_fileMenu;
     QAction *m_fileNewDb;

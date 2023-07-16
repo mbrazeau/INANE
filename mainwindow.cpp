@@ -92,6 +92,15 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     QPushButton *addObs = new QPushButton(tr("New observation"), this);
     mainLayout->addWidget(addObs, 2, 3);
+
+    // TEMPORARY!!!
+    connect(addObs, &QPushButton::released, this, &MainWindow::updateObsTable);
+    // END TEMP
+
+    QPushButton *addTaxon = new QPushButton(tr("New taxon"), this);
+    mainLayout->addWidget(addTaxon, 2, 0);
+    connect(addTaxon, &QPushButton::released, this, &MainWindow::getNewTaxon);
+
     mainLayout->setColumnStretch(1, 2);
 }
 
@@ -113,6 +122,28 @@ void MainWindow::aboutMenu()
     ;
 
     showMessage(about);
+}
+
+void MainWindow::addTaxon(const QString &name)
+{
+    QSqlQuery query;
+    QCryptographicHash charUUID(QCryptographicHash::Sha1);
+    QByteArray data;
+    QByteArray hashresult;
+
+    data = name.toLocal8Bit();
+    charUUID.addData(data);
+    hashresult = charUUID.result();
+    charUUID.reset();
+    QString shortHash = QString(hashresult.toHex().remove(0, 2 * hashresult.size() - 7));
+
+    query.prepare(QString("INSERT INTO taxa (taxon_GUUID, name) VALUES (:taxon_id, :name)"));
+    query.bindValue(":taxon_id", shortHash);
+    query.bindValue(":name", name);
+    query.exec();
+    if (query.next()) {
+        qDebug() << query.value(0).toString();
+    }
 }
 
 void MainWindow::showMessage(QString message)
@@ -227,18 +258,7 @@ void MainWindow::importNexus()
     // Process the taxa and insert them to the taxa table
     for (i = 0; i < nxreader.getNtax(); ++i) {
         QString taxname = nxreader.getTaxLabel(i);
-        data = taxname.toLocal8Bit();
-        charUUID.addData(data);
-        hashresult = charUUID.result();
-        charUUID.reset();
-        QString shortHash = QString(hashresult.toHex().remove(0, 2 * hashresult.size() - 7));
-        query.prepare(QString("INSERT INTO taxa (taxon_GUUID, name) VALUES (:taxon_id, :name)"));
-        query.bindValue(":taxon_id", shortHash);
-        query.bindValue(":name", taxname);
-        query.exec();
-        if (query.next()) {
-            qDebug() << query.value(0).toString();
-        }
+        addTaxon(taxname);
     }
 
     // Process the characters and insert them into the characters table
@@ -578,7 +598,7 @@ void MainWindow::configMainTables()
 
     charTable = new QSqlRelationalTableModel(this, QSqlDatabase::database());
     charTable->setTable("characters");
-    charTable->setEditStrategy(QSqlRelationalTableModel::OnFieldChange);
+    charTable->setEditStrategy(QSqlRelationalTableModel::OnManualSubmit);
 
     stateTable = new QSqlRelationalTableModel(this, QSqlDatabase::database());
     stateTable->setTable("states");
@@ -632,6 +652,46 @@ void MainWindow::resetMainTables()
     delete charTable;
     delete stateTable;
     delete observationsTable;
+}
+
+void MainWindow::getNewTaxon()
+{
+    bool ok;
+
+    QString taxonName = QInputDialog::getText(nullptr,
+                                              tr("New taxon"),
+                                              tr("Input a new taxon name"),
+                                              QLineEdit::Normal,
+                                              "",
+                                              &ok);
+
+    if (ok && !taxonName.isEmpty()) {
+        addTaxon(taxonName);
+    }
+
+    taxaTable->select();
+}
+
+void MainWindow::updateObsTable()
+{
+    // TODO: Check for valid taxa and characters?
+    QSqlQuery query;
+
+    query.prepare("INSERT INTO observations (taxon, character)"
+                  "SELECT taxa.taxon_id, characters.char_id "
+                  "FROM taxa CROSS JOIN characters");
+
+    if (!query.exec()) {
+        qDebug() << query.lastError().text();
+        return;
+    } else {
+        qDebug() << "Query executed";
+    }
+
+    query.exec("UPDATE observations SET state = 1");
+
+    observationsTable->select();
+    obsTableView->resizeColumnsToContents();
 }
 
 

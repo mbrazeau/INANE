@@ -30,6 +30,7 @@ public slots:
     void exportNexus();
     void openCharTableView();
     void aboutMenu();
+    void addTaxon(const QString &name);
 
 private:
     void createMenus();
@@ -39,6 +40,8 @@ private:
     void createMainTables();
     void configMainTables();
     void resetMainTables();
+    void getNewTaxon();
+    void updateObsTable();
 
     QString taxonFilter;
 

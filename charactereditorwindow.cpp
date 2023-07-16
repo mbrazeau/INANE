@@ -132,7 +132,7 @@ void CharacterEditorWindow::deleteCharAction()
     checkDelete.setIcon(QMessageBox::Critical);
     checkDelete.setText("Are you sure you want to delete this character?");
     checkDelete.setInformativeText("Deleting characters is not best practice. If you want to exclude a character from analyses, you should toggle its inclusion status.");
-    checkDelete.setStandardButtons(QMessageBox::Abort);
+    checkDelete.setStandardButtons(QMessageBox::Abort | QMessageBox::Ignore);
     checkDelete.setDefaultButton(QMessageBox::Abort);
 
     int ret = checkDelete.exec();
@@ -224,6 +224,7 @@ void CharacterEditorWindow::commitCharChange()
         charID = last.value(QString("char_id")).toInt();
         charUUID.addData( last.value(QString("label")).toString().toLocal8Bit() );
 
+        QSqlDatabase::database().transaction();
         // Select and loop over the states as defined:
         query.exec(QString("SELECT label FROM states WHERE character = %1").arg(charID));
         while (query.next()) {
@@ -241,6 +242,12 @@ void CharacterEditorWindow::commitCharChange()
         query.bindValue(":char_id", charID);
         if(!query.exec()){
             qDebug() << query.lastError().text();
+        }
+
+        if (!charTable_p->submitAll()) {
+            QSqlDatabase::database().rollback();
+        } else {
+            QSqlDatabase::database().commit();
         }
 
         charTableView->setEnabled(true);

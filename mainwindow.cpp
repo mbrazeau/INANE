@@ -37,6 +37,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     // Initialize variables.
     taxonFilter = "";
 
+    // Initialise the database
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+
     // Initialise main window dimensions so it doesn't look stupid when it first opens up
     QRect rec;
     rec = QGuiApplication::primaryScreen()->geometry();
@@ -134,12 +137,10 @@ void MainWindow::dbNew()
     }
 
     // Initiate database
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName(path);
-    if (!db.open()) {
+    QSqlDatabase::database().setDatabaseName(path);
+    if (!QSqlDatabase::database().open()) {
         qDebug() << "No database!";
     }
-//    qDebug() << db.databaseName();
 
     createMainTables();
     configMainTables();
@@ -156,9 +157,8 @@ void MainWindow::dbOpen()
     }
 
     // Initiate database
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName(path);
-    if (!db.open()) {
+    QSqlDatabase::database().setDatabaseName(path);
+    if (!QSqlDatabase::database().open()) {
         qDebug() << "No database!";
     }
 
@@ -167,18 +167,17 @@ void MainWindow::dbOpen()
 
 void MainWindow::dbClose()
 {
-//    {
-//    QString connection = QSqlDatabase::defaultConnection;
-//        QSqlDatabase db = QSqlDatabase::database();
-//        db.close();
-//        db = QSqlDatabase();
-//        db.removeDatabase(connection);
-////    }
+    QString connection = QSqlDatabase::database().databaseName();
+
+    QSqlDatabase::database().close();
+    QSqlDatabase::removeDatabase(connection);
+
+    path = "";
+
+    resetMainTables();
 
     mainMenu->setInFileMenusEnabled(true);
     mainMenu->setDataMenusEnabled(false);
-//    fileMenu->actions().at(0)->setEnabled(true); // Re-enable New menu
-//    fileMenu->actions().at(1)->setEnabled(true); // Re-enable Open menu
 }
 
 void MainWindow::dbSave()
@@ -624,7 +623,15 @@ void MainWindow::configMainTables()
 
     mainMenu->setDataMenusEnabled(true);
     mainMenu->setInFileMenusEnabled(false);
-//    taxaTableView->resize(20, );
+    //    taxaTableView->resize(20, );
+}
+
+void MainWindow::resetMainTables()
+{
+    delete taxaTable;
+    delete charTable;
+    delete stateTable;
+    delete observationsTable;
 }
 
 

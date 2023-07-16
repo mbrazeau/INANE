@@ -38,6 +38,7 @@ private:
     void showInitDialog();
     void createMainTables();
     void configMainTables();
+    void resetMainTables();
 
     QString taxonFilter;
 

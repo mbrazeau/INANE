@@ -1,3 +1,5 @@
+#include <QApplication>
+#include <QDialogButtonBox>
 #include <QCryptographicHash>
 #include <QDataWidgetMapper>
 #include <QDialogButtonBox>
@@ -8,14 +10,19 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QPixmap>
 #include <QPushButton>
 #include <QSqlDatabase>
 #include <QSqlRecord>
 #include <QSqlRelationalTableModel>
 #include <QSqlRelationalDelegate>
 #include <QSqlError>
+#include <QStyle>
 #include <QTableView>
 #include <QTextEdit>
+#include <QToolBar>
+#include <QToolButton>
+#include <QVBoxLayout>
 
 #include "charactereditorwindow.h"
 #include "mainwindow.h"
@@ -27,13 +34,14 @@ CharacterEditorWindow::CharacterEditorWindow(QWidget *parent) : QWidget(parent)
     charWindLayout = new QGridLayout(this);
     charWindLayout->addWidget(charTableView, 0, 0, 8, 1);
 
-    newChar = new QPushButton(tr("New character"), this);
+    charListButtons = new QDialogButtonBox(this);
+    charListButtons->setOrientation(Qt::Horizontal);
+    newChar = charListButtons->addButton(tr("New character"), QDialogButtonBox::ActionRole);
+    deleteChar = charListButtons->addButton(tr("Delete character"), QDialogButtonBox::ActionRole);
     connect(newChar, &QPushButton::released, this, &CharacterEditorWindow::newCharacterAction);
-    deleteChar = new QPushButton(tr("Delete character"), this);
     connect(deleteChar, &QPushButton::released, this, &CharacterEditorWindow::deleteCharAction);
 
-    charWindLayout->addWidget(newChar, 8, 0);
-    charWindLayout->addWidget(deleteChar, 9, 0);
+    charWindLayout->addWidget(charListButtons, 8, 0);
 
     charTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     charTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
@@ -104,22 +112,51 @@ void CharacterEditorWindow::initEditorArea()
 
     // Place in layout
     charWindLayout->addWidget(labelLabel, 0, 1);
-    charWindLayout->addWidget(labelField, 1, 1);
+    charWindLayout->addWidget(labelField, 1, 1, 1, -1);
     charWindLayout->addWidget(statesLabel, 2, 1);
     charWindLayout->addWidget(statesTable, 3, 1);
     charWindLayout->addWidget(sourceLabel, 4, 1);
-    charWindLayout->addWidget(sourceField, 5, 1);
+    charWindLayout->addWidget(sourceField, 5, 1, 1, -1);
     charWindLayout->addWidget(descripLabel, 6, 1);
-    charWindLayout->addWidget(descripField, 7, 1);
+    charWindLayout->addWidget(descripField, 7, 1, 1, -1);
 
     submitButton = new QPushButton(tr("Submit"), this);
     charWindLayout->addWidget(submitButton, 8, 1);
     connect(submitButton, &QPushButton::released, this, &CharacterEditorWindow::commitCharChange);
 
-//    charTable_p->row
+    // Add some up-down buttons for reordering states
+//    stateTools = new QToolBar(this);
 
-//    editorArea->setLayout(editorLayout);
-//    charWindLayout->addWidget(editorArea, 0, 1);
+    QSize buttonSize;
+    buttonSize.setHeight(25);
+    buttonSize.setWidth(25);
+
+    QWidget *box = new QWidget(this);
+    box->setLayout(new QVBoxLayout(box));
+//    stateTools->setOrientation(Qt::Vertical);
+    moveStateUp = new QToolButton(this);
+    moveStateUp->setArrowType(Qt::UpArrow);
+    moveStateUp->setToolTip(tr("Move state up in list"));
+    moveStateUp->setFixedSize(buttonSize);
+    moveStateDn = new QToolButton(this);
+    moveStateDn->setArrowType(Qt::DownArrow);
+    moveStateDn->setToolTip(tr("Move state down in list"));
+    moveStateDn->setFixedSize(buttonSize);
+    newState = new QToolButton(this);
+    newState->setText("+");
+    newState->setFixedSize(buttonSize);
+    newState->setToolTip(tr("Add a state to this character"));
+    deleteState = new QToolButton(this);
+    deleteState->setIcon(QApplication::style()->standardIcon(QStyle::SP_DialogDiscardButton));
+    deleteState->setToolTip(tr("Delete state from this character"));
+    deleteState->setFixedSize(buttonSize);
+    box->layout()->addWidget(moveStateUp);
+    box->layout()->addWidget(moveStateDn);
+    box->layout()->addWidget(newState);
+    box->layout()->addWidget(deleteState);
+    charWindLayout->addWidget(box, 3, 2);
+
+    qDebug() << moveStateDn->size().height();
 
     QString charID;
     charID = charTable_p->record(0).value(QString("char_id")).toString();

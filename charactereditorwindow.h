@@ -4,6 +4,7 @@
 #include <QWidget>
 
 class QDialogButtonBox;
+class QDialogButtonBox;
 class QGridLayout;
 class QHBoxLayout;
 class QTableView;
@@ -16,6 +17,9 @@ class QSqlRelationalTableModel;
 class QDataWidgetMapper;
 class QPushButton;
 class QModelIndex;
+class QToolBar;
+class QToolButton;
+class QVBoxLayout;
 
 class CharacterEditorWindow : public QWidget
 {
@@ -47,9 +51,16 @@ private:
     QDialogButtonBox *stateListButtons;
     QDialogButtonBox *charDataButtons;
 
+    QToolBar *stateTools;
+    QToolButton *moveStateUp;
+    QToolButton *moveStateDn;
+    QToolButton *newState;
+    QToolButton *deleteState;
+
     QPushButton *newChar;
     QPushButton *deleteChar;
     QPushButton *submitButton;
+    QPushButton *cancelButton;
 
     void setCharTable();
     void initEditorArea();

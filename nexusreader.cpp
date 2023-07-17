@@ -104,7 +104,7 @@ QString NexusReader::getStateLabel(unsigned int taxon_i, unsigned int char_i, un
         return "inapplicable";
     }
 
-    return QString(_characters->GetStateLabel(char_i, state_i).c_str());
+    return QString(_characters->GetStateLabel(char_i, _characters->GetInternalRepresentation(taxon_i, char_i, state_i)).c_str());
 }
 
 

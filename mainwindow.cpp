@@ -13,6 +13,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QSqlRelationalDelegate>
 #include <QScreen>
 #include <QSpacerItem>
 #include <QSplitter>
@@ -30,6 +31,7 @@
 #include "nexusreader.h"
 #include "mainmenu.h"
 #include "charactereditorwindow.h"
+#include "stateobseditordelegate.h"
 
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
@@ -293,28 +295,22 @@ void MainWindow::importNexus()
         qDebug() << "Char ID: " << charID;
         // Insert into the state table
         for (j = 0; j < nxreader.getNumStatesForChar(i); ++j) {
+
             QString stateLabel = QString(nxreader.getStateLabel(i, j).toLocal8Bit());
             if (stateLabel != " ") {
+                qDebug() << "stat label: " << stateLabel;
                 query.prepare(QString("INSERT INTO states (character, label) VALUES (:character, :label)"));
                 //            query.bindValue(":state_id", ctr);
                 query.bindValue(":character", charID);
                 query.bindValue(":label", stateLabel);
-                query.exec();
+                if (!query.exec()) {
+                    qDebug() << query.lastError().text();
+                }
             }
         }
-//        query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('?', %1, '%2')").arg(charID).arg(QString("missing")));
-//        query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('-', %1, '%2')").arg(charID).arg(QString("inapplicable")));
+        query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('?', %1, '%2')").arg(charID).arg(QString("missing")));
+        query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('-', %1, '%2')").arg(charID).arg(QString("inapplicable")));
     }
-
-    if(!query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('?', NULL, '%1')").arg(QString("missing")))) {
-        qDebug() << query.lastError().text();
-    }
-//        ;
-
-    if (!query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('-', NULL, '%1')").arg(QString("inapplicable")))) {
-        qDebug() << query.lastError().text();
-    }
-//        ;
 
     // Process the individual observations in the matrix and insert them to the observations table
     for (i = 0; i < nxreader.getNtax(); ++i) {
@@ -334,7 +330,7 @@ void MainWindow::importNexus()
             query.exec(QString("SELECT char_id FROM characters WHERE rowid = %1").arg(j + 1));
             while (query.next()) {
                 charID = query.value(0).toInt();
-//                qDebug() << "Char ID: " << charID;
+                qDebug() << "Char ID: " << charID;
             }
 
 //            qDebug() << "Character: " << charlabel;
@@ -342,22 +338,26 @@ void MainWindow::importNexus()
             for (k = 0; k < nxreader.getNumStates(i, j); ++k) {
                 QString statelabel;
                 statelabel = nxreader.getStateLabel(i, j, k);
-//                qDebug() << "state: " << statelabel;
-                if (statelabel.toLower() != "missing" && statelabel.toLower() != "inapplicable") {
+                qDebug() << "state: " << statelabel;
+//                if (statelabel != "missing" && statelabel != "inapplicable") {
                     query.prepare(QString("INSERT INTO observations (taxon, character, state) "
                                           "VALUES (:taxon, :character, (SELECT state_id FROM states WHERE character = :character AND label = :label))"));
                     query.bindValue(":taxon", taxID);
                     query.bindValue(":character", charID);
                     query.bindValue(":label", statelabel);
-                    query.exec();
-                } else {
-                    query.prepare(QString("INSERT INTO observations (taxon, character, state) "
-                                          "VALUES (:taxon, :character, (SELECT state_id FROM states WHERE :label = 'missing' OR label = 'inapplicable'))"));
-                    query.bindValue(":taxon", taxID);
-                    query.bindValue(":character", charID);
-                    query.bindValue(":label", statelabel);
-                    query.exec();
-                }
+                    if (!query.exec()) {
+                        qDebug() << query.lastError().text();
+                    }
+//                } else {
+//                    query.prepare(QString("INSERT INTO observations (taxon, character, state) "
+//                                          "VALUES (:taxon, :character, (SELECT state_id FROM states WHERE :label = 'missing' OR :label = 'inapplicable'))"));
+//                    query.bindValue(":taxon", taxID);
+//                    query.bindValue(":character", charID);
+//                    query.bindValue(":label", statelabel);
+//                    if (!query.exec()) {
+//                        qDebug() << query.lastError().text();
+//                    }
+//                }
             }
             QSqlDatabase::database().commit();
         }
@@ -388,9 +388,6 @@ void MainWindow::exportNexus()
     nexout << QString("#NEXUS\n\n").toStdString();
 
     QSqlQuery query;
-
-
-
 
     nexout << "BEGIN TAXA;\n";
 
@@ -488,6 +485,13 @@ void MainWindow::onObsFilterEdited(const QString &string)
 
 void MainWindow::openCharTableView()
 {
+    // TEMPORARY:
+    observationsTable->select();
+    QSqlRecord rec = observationsTable->record(2);
+    qDebug() << "For funsies: " << rec.value("character").toInt();
+    qDebug() << "For funsies: " << taxaTable->record(1).value("name").toString();
+    //END TEMP
+
     CharacterEditorWindow *charEditor = new CharacterEditorWindow;
     connect(charTable, &QSqlRelationalTableModel::dataChanged, this, &MainWindow::onDataChanged);
     connect(stateTable, &QSqlRelationalTableModel::dataChanged, this, &MainWindow::onDataChanged);
@@ -555,14 +559,14 @@ void MainWindow::createMainTables()
     QSqlQuery query;
 
     query.exec("CREATE TABLE taxa ("
-                "taxon_id    INTEGER PRIMARY KEY AUTOINCREMENT,"
+                "taxon_id    INTEGER PRIMARY KEY,"
                 "taxon_GUUID VARCHAR(7) UNIQUE,"
                 "name        VARCHAR(100),"
                 "included    INT(1),"
                 "author      VARCHAR(100))");
 
     query.exec("CREATE TABLE characters ("
-                "char_id    INTEGER PRIMARY KEY AUTOINCREMENT,"
+                "char_id    INTEGER PRIMARY KEY,"
                 "char_GUUID VARCHAR(7) UNIQUE,"
                 "label      MEDIUMTEXT,"
                 "source     MEDIUMTEXT,"
@@ -570,17 +574,17 @@ void MainWindow::createMainTables()
                 "notes      MEDIUMTEXT)");
 
     query.exec("CREATE TABLE states ("
-                "state_id   INTEGER PRIMARY KEY AUTOINCREMENT,"
+                "state_id   INTEGER PRIMARY KEY,"
                 "symbol     VARCHAR(1),"
-                "character  VARCHAR(7),"
+                "character  INTEGER,"
                 "label      VARCHAR(200),"
                 "definition MEDIUMTEXT,"
-                "UNIQUE (character, label),"
-                "UNIQUE (character, symbol),"
+//                "UNIQUE (character, label),"
+//                "UNIQUE (character, symbol),"
                 "FOREIGN KEY (character) REFERENCES characters (char_id))");
 
     query.exec("CREATE TABLE observations ("
-                "id        INTEGER PRIMARY KEY AUTOINCREMENT,"
+                "id        INTEGER PRIMARY KEY,"
                 "taxon     INTEGER,"
                 "character INTEGER,"
                 "state     INTEGER,"
@@ -626,6 +630,10 @@ void MainWindow::configMainTables()
     observationsTable->setHeaderData(2, Qt::Horizontal, tr("Character"));
     observationsTable->setHeaderData(3, Qt::Horizontal, tr("State"));
     observationsTable->setHeaderData(4, Qt::Horizontal, tr("Notes"));
+
+    StateObsEditorDelegate *obsDelegate = new StateObsEditorDelegate(this);
+    obsDelegate->setStateTable(*stateTable);
+    obsTableView->setItemDelegateForColumn(3, obsDelegate); // TODO: This might leak without parent
 
     taxaTableView->setModel(taxaTable);
     obsTableView->setModel(observationsTable);
@@ -696,7 +704,7 @@ void MainWindow::updateObsTable()
         qDebug() << "Query executed";
     }
 
-    query.exec("UPDATE observations SET state = 1");
+//    query.exec("UPDATE observations SET state = 1");
 
     observationsTable->select();
     obsTableView->resizeColumnsToContents();

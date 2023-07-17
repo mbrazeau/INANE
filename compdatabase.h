@@ -7,15 +7,6 @@ class CompDataBase
 {
 public:
     CompDataBase();
-
-    QSqlDatabase coreData;
-
-
-    bool addTaxon(QString label);
-    bool addCharacter(QString label);
-
-//    QSqlQuery       *query;
-//    QSqlDatabase    &database();
 };
 
 #endif // COMPDATABASE_H

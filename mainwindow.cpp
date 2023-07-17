@@ -262,7 +262,6 @@ void MainWindow::importNexus()
     }
 
     // Process the characters and insert them into the characters table
-    unsigned int ctr = 1;
     for (i = 0; i < nxreader.getNchar(); ++i) {
         QString label = nxreader.getCharLabel(i);
         charUUID.addData(label.toLocal8Bit());
@@ -301,16 +300,23 @@ void MainWindow::importNexus()
                 query.bindValue(":character", charID);
                 query.bindValue(":label", stateLabel);
                 query.exec();
-                ctr++;
             }
         }
-        query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('?', %1, '%2')").arg(charID).arg(QString("missing")));
-        query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('-', %1, '%2')").arg(charID).arg(QString("inapplicable")));
-        ctr++;
+//        query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('?', %1, '%2')").arg(charID).arg(QString("missing")));
+//        query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('-', %1, '%2')").arg(charID).arg(QString("inapplicable")));
     }
 
+    if(!query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('?', NULL, '%1')").arg(QString("missing")))) {
+        qDebug() << query.lastError().text();
+    }
+//        ;
+
+    if (!query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('-', NULL, '%1')").arg(QString("inapplicable")))) {
+        qDebug() << query.lastError().text();
+    }
+//        ;
+
     // Process the individual observations in the matrix and insert them to the observations table
-    ctr = 1;
     for (i = 0; i < nxreader.getNtax(); ++i) {
         QString taxname = nxreader.getTaxLabel(i);
 
@@ -337,22 +343,25 @@ void MainWindow::importNexus()
                 QString statelabel;
                 statelabel = nxreader.getStateLabel(i, j, k);
 //                qDebug() << "state: " << statelabel;
-                query.prepare(QString("INSERT INTO observations (taxon, character, state) "
-                                      "VALUES (:taxon, :character, (SELECT state_id FROM states WHERE character = :character AND label = :label))"));
-//                query.bindValue(":obs_id", ctr);
-                query.bindValue(":taxon", taxID);
-                query.bindValue(":character", charID);
-                query.bindValue(":label", statelabel);
-                query.exec();
-//                qDebug() << query.lastError().text();
-                ++ctr;
+                if (statelabel.toLower() != "missing" && statelabel.toLower() != "inapplicable") {
+                    query.prepare(QString("INSERT INTO observations (taxon, character, state) "
+                                          "VALUES (:taxon, :character, (SELECT state_id FROM states WHERE character = :character AND label = :label))"));
+                    query.bindValue(":taxon", taxID);
+                    query.bindValue(":character", charID);
+                    query.bindValue(":label", statelabel);
+                    query.exec();
+                } else {
+                    query.prepare(QString("INSERT INTO observations (taxon, character, state) "
+                                          "VALUES (:taxon, :character, (SELECT state_id FROM states WHERE :label = 'missing' OR label = 'inapplicable'))"));
+                    query.bindValue(":taxon", taxID);
+                    query.bindValue(":character", charID);
+                    query.bindValue(":label", statelabel);
+                    query.exec();
+                }
             }
             QSqlDatabase::database().commit();
         }
     }
-
-    // Populate the states table by inserting the distinct set of states and character observations
-//    query.exec("INSERT INTO states (character, label) SELECT DISTINCT character, state FROM observations");
 
     taxaTable->select();
     charTable->select();
@@ -361,7 +370,6 @@ void MainWindow::importNexus()
     onDataChanged();
     onTaxaChanged();
 
-    // Close the file, it's no longer needed.
     nxreader.closeNexusFile();
 }
 

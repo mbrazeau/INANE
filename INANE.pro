@@ -13,7 +13,7 @@ SOURCES += \
     nexusreader.cpp \
     observationtable.cpp \
     sqllistview.cpp \
-    stateobseditordelegate.cpp \
+    stateselectordelegate.cpp \
     taxonmanager.cpp
 
 HEADERS += \
@@ -24,7 +24,7 @@ HEADERS += \
     nexusreader.h \
     observationtable.h \
     sqllistview.h \
-    stateobseditordelegate.h \
+    stateselectordelegate.h \
     taxonmanager.h
 
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 13.0

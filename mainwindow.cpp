@@ -31,7 +31,7 @@
 #include "nexusreader.h"
 #include "mainmenu.h"
 #include "charactereditorwindow.h"
-#include "stateobseditordelegate.h"
+#include "stateselectordelegate.h"
 
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
@@ -485,13 +485,6 @@ void MainWindow::onObsFilterEdited(const QString &string)
 
 void MainWindow::openCharTableView()
 {
-    // TEMPORARY:
-    observationsTable->select();
-    QSqlRecord rec = observationsTable->record(2);
-    qDebug() << "For funsies: " << rec.value("character").toInt();
-    qDebug() << "For funsies: " << taxaTable->record(1).value("name").toString();
-    //END TEMP
-
     CharacterEditorWindow *charEditor = new CharacterEditorWindow;
     connect(charTable, &QSqlRelationalTableModel::dataChanged, this, &MainWindow::onDataChanged);
     connect(stateTable, &QSqlRelationalTableModel::dataChanged, this, &MainWindow::onDataChanged);
@@ -579,8 +572,8 @@ void MainWindow::createMainTables()
                 "character  INTEGER,"
                 "label      VARCHAR(200),"
                 "definition MEDIUMTEXT,"
-//                "UNIQUE (character, label),"
-//                "UNIQUE (character, symbol),"
+                "UNIQUE (character, label),"
+                "UNIQUE (character, symbol),"
                 "FOREIGN KEY (character) REFERENCES characters (char_id))");
 
     query.exec("CREATE TABLE observations ("
@@ -589,6 +582,7 @@ void MainWindow::createMainTables()
                 "character INTEGER,"
                 "state     INTEGER,"
                 "notes     MEDIUMTEXT,"
+                "UNIQUE (taxon, character, state),"
                 "FOREIGN KEY (taxon) REFERENCES taxa (taxon_id) ON UPDATE CASCADE,"
                 "FOREIGN KEY (state) REFERENCES states (state_id) ON UPDATE CASCADE,"
                 "FOREIGN KEY (character) REFERENCES characters (char_id) ON UPDATE CASCADE)");
@@ -631,8 +625,7 @@ void MainWindow::configMainTables()
     observationsTable->setHeaderData(3, Qt::Horizontal, tr("State"));
     observationsTable->setHeaderData(4, Qt::Horizontal, tr("Notes"));
 
-    StateObsEditorDelegate *obsDelegate = new StateObsEditorDelegate(this);
-    obsDelegate->setStateTable(*stateTable);
+    StateSelectorDelegate *obsDelegate = new StateSelectorDelegate(this);
     obsTableView->setItemDelegateForColumn(3, obsDelegate); // TODO: This might leak without parent
 
     taxaTableView->setModel(taxaTable);
@@ -646,7 +639,7 @@ void MainWindow::configMainTables()
     taxaTableView->setColumnHidden(0, true);
     taxaTableView->setColumnHidden(1, true);
 //    //    taxaTableView->show();
-    obsTableView->setColumnHidden(0, true);
+//    obsTableView->setColumnHidden(0, true);
     //    obsTableView->show();
     //    obsTableView->setSortingEnabled(true);
 

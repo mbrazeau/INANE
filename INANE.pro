@@ -11,6 +11,7 @@ SOURCES += \
     mainmenu.cpp \
     mainwindow.cpp \
     nexusreader.cpp \
+    noteditabledelegate.cpp \
     stateselectordelegate.cpp \
     taxonmanager.cpp
 
@@ -20,6 +21,7 @@ HEADERS += \
     mainmenu.h \
     mainwindow.h \
     nexusreader.h \
+    noteditabledelegate.h \
     stateselectordelegate.h \
     taxonmanager.h
 

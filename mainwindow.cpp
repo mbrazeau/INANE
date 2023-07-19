@@ -32,7 +32,7 @@
 #include "mainmenu.h"
 #include "charactereditorwindow.h"
 #include "stateselectordelegate.h"
-
+#include "noteditabledelegate.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
@@ -628,6 +628,8 @@ void MainWindow::configMainTables()
 
     StateSelectorDelegate *obsDelegate = new StateSelectorDelegate(this);
     obsTableView->setItemDelegateForColumn(3, obsDelegate);
+    obsTableView->setItemDelegateForColumn(1, new NotEditableDelegate(obsTableView));
+    obsTableView->setItemDelegateForColumn(2, new NotEditableDelegate(obsTableView));
 
 
     taxaTableView->setModel(taxaTable);
@@ -640,10 +642,13 @@ void MainWindow::configMainTables()
     // Display the tables
     taxaTableView->setColumnHidden(0, true);
     taxaTableView->setColumnHidden(1, true);
-//    //    taxaTableView->show();
+    taxaTableView->setColumnHidden(3, true);
+    taxaTableView->setColumnHidden(4, true);
+    taxaTableView->horizontalHeader()->setStretchLastSection(true);
+
+
     obsTableView->setColumnHidden(0, true);
-    //    obsTableView->show();
-    //    obsTableView->setSortingEnabled(true);
+//    obsTableView->setSortingEnabled(true);
 
     taxaTableView->resizeColumnsToContents();
     obsTableView->resizeColumnsToContents();
@@ -651,7 +656,7 @@ void MainWindow::configMainTables()
 
     connect(taxaTableView, &QAbstractItemView::clicked, this, &MainWindow::onTaxonSelected);
     connect(obsFilterField, &QLineEdit::textEdited, this, &MainWindow::onObsFilterEdited);
-    connect(observationsTable, &QSqlRelationalTableModel::dataChanged, obsTableView, &QTableView::resizeColumnsToContents);
+//    connect(observationsTable, &QSqlRelationalTableModel::dataChanged, obsTableView, &QTableView::resizeColumnsToContents);
 //    connect(obsDelegate, &StateSelectorDelegate::commitData, observationsTable, &QSqlRelationalTableModel::select);
 
     mainMenu->setDataMenusEnabled(true);

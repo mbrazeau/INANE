@@ -11,8 +11,6 @@ SOURCES += \
     mainmenu.cpp \
     mainwindow.cpp \
     nexusreader.cpp \
-    observationtable.cpp \
-    sqllistview.cpp \
     stateselectordelegate.cpp \
     taxonmanager.cpp
 
@@ -22,8 +20,6 @@ HEADERS += \
     mainmenu.h \
     mainwindow.h \
     nexusreader.h \
-    observationtable.h \
-    sqllistview.h \
     stateselectordelegate.h \
     taxonmanager.h
 

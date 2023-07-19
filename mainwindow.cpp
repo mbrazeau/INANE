@@ -68,6 +68,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     obsTableView = new QTableView(this);
     obsTableView->setEditTriggers(QAbstractItemView::AllEditTriggers);
+    obsTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
 
 //    QLineEdit *taxaFilterField = new QLineEdit(this);
 //    QLabel *taxFilterLabel = new QLabel(this);
@@ -444,7 +445,7 @@ void MainWindow::onTaxonSelected(const QModelIndex &index)
     QSqlRecord record = taxaTable->record(index.row());
     QVariant taxonID = record.value(QString("taxon_id"));
 
-    qDebug() << "Selected: " << taxonID.toString();
+//    qDebug() << "Selected: " << taxonID.toString();
 
     taxonFilter = taxonID.toString();
 
@@ -582,7 +583,7 @@ void MainWindow::createMainTables()
                 "character INTEGER,"
                 "state     INTEGER,"
                 "notes     MEDIUMTEXT,"
-                "UNIQUE (taxon, character, state),"
+//                "UNIQUE (taxon, character, state),"
                 "FOREIGN KEY (taxon) REFERENCES taxa (taxon_id) ON UPDATE CASCADE,"
                 "FOREIGN KEY (state) REFERENCES states (state_id) ON UPDATE CASCADE,"
                 "FOREIGN KEY (character) REFERENCES characters (char_id) ON UPDATE CASCADE)");
@@ -626,7 +627,8 @@ void MainWindow::configMainTables()
     observationsTable->setHeaderData(4, Qt::Horizontal, tr("Notes"));
 
     StateSelectorDelegate *obsDelegate = new StateSelectorDelegate(this);
-    obsTableView->setItemDelegateForColumn(3, obsDelegate); // TODO: This might leak without parent
+    obsTableView->setItemDelegateForColumn(3, obsDelegate);
+
 
     taxaTableView->setModel(taxaTable);
     obsTableView->setModel(observationsTable);
@@ -639,16 +641,18 @@ void MainWindow::configMainTables()
     taxaTableView->setColumnHidden(0, true);
     taxaTableView->setColumnHidden(1, true);
 //    //    taxaTableView->show();
-//    obsTableView->setColumnHidden(0, true);
+    obsTableView->setColumnHidden(0, true);
     //    obsTableView->show();
     //    obsTableView->setSortingEnabled(true);
 
     taxaTableView->resizeColumnsToContents();
     obsTableView->resizeColumnsToContents();
+    obsTableView->horizontalHeader()->setStretchLastSection(true);
 
     connect(taxaTableView, &QAbstractItemView::clicked, this, &MainWindow::onTaxonSelected);
     connect(obsFilterField, &QLineEdit::textEdited, this, &MainWindow::onObsFilterEdited);
     connect(observationsTable, &QSqlRelationalTableModel::dataChanged, obsTableView, &QTableView::resizeColumnsToContents);
+//    connect(obsDelegate, &StateSelectorDelegate::commitData, observationsTable, &QSqlRelationalTableModel::select);
 
     mainMenu->setDataMenusEnabled(true);
     mainMenu->setInFileMenusEnabled(false);

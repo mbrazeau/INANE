@@ -69,6 +69,9 @@ private:
     void newCharacterAction();
     void deleteCharAction();
     void commitCharChange();
+    void newStateAction();
+    void deleteStateAction();
+    void filterStatesByChar(const QModelIndex &index);
 
 //private slots:
 

@@ -12,10 +12,11 @@
 #include <QMessageBox>
 #include <QPixmap>
 #include <QPushButton>
-#include <QSqlDatabase>
-#include <QSqlRecord>
-#include <QSqlRelationalTableModel>
-#include <QSqlRelationalDelegate>
+#include <QtSql>
+//#include <QSqlDatabase>
+//#include <QSqlRecord>
+//#include <QSqlRelationalTableModel>
+//#include <QSqlRelationalDelegate>
 #include <QSqlError>
 #include <QStyle>
 #include <QTableView>
@@ -105,6 +106,7 @@ void CharacterEditorWindow::initEditorArea()
     statesTable->setModel(statesTable_p);
     statesTable->setColumnHidden(0, true);
     statesTable->setColumnHidden(2, true);
+    statesTable->horizontalHeader()->setStretchLastSection(true);
     statesTable_p->select();
 
     mapper->toFirst();
@@ -156,11 +158,15 @@ void CharacterEditorWindow::initEditorArea()
     box->layout()->addWidget(deleteState);
     charWindLayout->addWidget(box, 3, 2);
 
+    // Create state button connections
+    connect(newState, &QToolButton::released, this, &CharacterEditorWindow::newStateAction);
+    connect(deleteState, &QToolButton::released, this, &CharacterEditorWindow::deleteStateAction);
+
     qDebug() << moveStateDn->size().height();
 
     QString charID;
     charID = charTable_p->record(0).value(QString("char_id")).toString();
-    statesTable_p->setFilter(QString("states.character = '%1'").arg(charID));
+    statesTable_p->setFilter(QString("states.character = '%1' AND label != 'missing' AND label != 'inapplicable'").arg(charID));
 }
 
 void CharacterEditorWindow::deleteCharAction()
@@ -220,7 +226,7 @@ void CharacterEditorWindow::newCharacterAction()
     query.exec(QString("INSERT INTO states (character, label) VALUES (%1, 'missing')").arg(newID));
     query.exec(QString("INSERT INTO states (character, label) VALUES (%1, 'inapplicable')").arg(newID));
 
-    statesTable_p->setFilter(QString("character = %1").arg(newID)); //Re-enable filter on new characters
+    statesTable_p->setFilter(QString("character = %1 AND label != 'missing' AND label != 'inapplicable'").arg(newID)); //Re-enable filter on new characters
 //    mapper->submit();
 
     charTableView->setEnabled(false);
@@ -296,14 +302,79 @@ void CharacterEditorWindow::commitCharChange()
     }
 }
 
-void CharacterEditorWindow::onCharacterClicked(const QModelIndex &index)
+void CharacterEditorWindow::newStateAction()
 {
-    mapper->setCurrentModelIndex(index);
+    // TODO: This stuff could be made a generic utility
+    QModelIndex index;
+    index = charTableView->currentIndex();
+    QSqlQueryModel *m = qobject_cast<QSqlQueryModel *>(charTableView->model());
+    QSqlRecord rec = m->record(index.row());
+    int rowid = rec.field("char_id").value().toInt();
+    // END TODO.
 
+    QSqlQuery query;
+    int charID;
+    if (!query.exec(QString("SELECT char_id FROM characters WHERE rowid = %1").arg(rowid))) {
+        qDebug() << query.lastError().text();
+    }
+    query.next();
+    charID = query.value(0).toInt();
+
+    query.prepare(QString("INSERT INTO states (label, character) VALUES ('new state', :char_id)"));
+    query.bindValue(":char_id", charID);
+    if (!query.exec()) {
+        qDebug() << query.lastError().text();
+    }
+    statesTable_p->select();
+    filterStatesByChar(index);
+}
+
+void CharacterEditorWindow::deleteStateAction()
+{
+    // TODO: This stuff could be made a generic utility
+    QModelIndex index;
+    index = charTableView->currentIndex();
+    QSqlQueryModel *m = qobject_cast<QSqlQueryModel *>(charTableView->model());
+    QSqlRecord rec = m->record(index.row());
+    int charID = rec.field("char_id").value().toInt();
+    // END TODO.
+
+    // TODO: This stuff could be made a generic utility
+    // As above, get the state row id now
+    index = statesTable->currentIndex();
+    m = qobject_cast<QSqlQueryModel *>(statesTable->model());
+    rec = m->record(index.row());
+    int stateID = rec.field("state_id").value().toInt();
+
+    QSqlQuery query;
+
+    // First, replace all instances of this character in the observations table with missing
+    query.prepare("UPDATE observations "
+                  "SET state = (SELECT state_id FROM states WHERE label = 'missing' AND character = :char_id) "
+                  "WHERE character = :char_id AND state = :state_id");
+    query.bindValue(":char_id", charID);
+    query.bindValue(":state_id", stateID);
+    if (!query.exec()) {
+        qDebug() << "\nUnable to to set states " << stateID << " to missing for char_id: " << charID;
+        qDebug() << query.lastError().text() << "\n\n";
+    }
+
+    query.exec(QString("DELETE FROM states WHERE state_id = %1").arg(stateID));
+    statesTable_p->select();
+}
+
+void CharacterEditorWindow::filterStatesByChar(const QModelIndex &index)
+{
     QString charID;
     charID = charTable_p->record(index.row()).value(QString("char_id")).toString();
     statesTable_p->filter().clear();
-    statesTable_p->setFilter(QString("character = '%1'").arg(charID));
+    statesTable_p->setFilter(QString("character = '%1' AND label != 'missing' AND label != 'inapplicable'").arg(charID));
+}
+
+void CharacterEditorWindow::onCharacterClicked(const QModelIndex &index)
+{
+    mapper->setCurrentModelIndex(index);
+    filterStatesByChar(index);
 }
 
 

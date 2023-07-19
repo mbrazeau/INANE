@@ -351,7 +351,7 @@ void CharacterEditorWindow::deleteStateAction()
     // First, replace all instances of this character in the observations table with missing
     query.prepare("UPDATE observations "
                   "SET state = (SELECT state_id FROM states WHERE label = 'missing' AND character = :char_id) "
-                  "WHERE character = :char_id AND state = :state_id");
+                  "WHERE state = :state_id");
     query.bindValue(":char_id", charID);
     query.bindValue(":state_id", stateID);
     if (!query.exec()) {

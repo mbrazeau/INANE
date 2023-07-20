@@ -463,9 +463,6 @@ void MainWindow::onTaxonSelected(const QModelIndex &index)
 
 void MainWindow::onObsFilterEdited(const QString &string)
 {
-    QSqlQuery query;
-    query.exec(QString("SELECT char_GUUID FROM characters WHERE label LIKE '%") + string + QString("%' "));
-
     // This conditional clears the filter if no string is input (i.e. when a filter is erased)
     if (string == "") {
         observationsTable->setFilter("");
@@ -473,12 +470,17 @@ void MainWindow::onObsFilterEdited(const QString &string)
         return;
     }
 
+    QSqlQuery query;
+    query.prepare(QString("SELECT char_id FROM characters WHERE label LIKE :label "));
+    query.bindValue(":label", QString("%%1%").arg(string));
+    query.exec();
     query.next();
-    QString filter = "(observations.character = '";
-    filter += (query.value(0).toString() + QString("' "));
+
+    QString filter = "(observations.character = ";
+    filter += (QString::number(query.value(0).toInt()) + QString(" "));
     while (query.next()) {
-        filter += QString(" OR observations.character = '");
-        filter += (query.value(0).toString() + QString("'"));
+        filter += QString(" OR observations.character = ");
+        filter += (QString::number(query.value(0).toInt()) + QString(" "));
     }
     filter += QString(")");
 

@@ -15,13 +15,14 @@
 #include <QPushButton>
 #include <QSqlRelationalDelegate>
 #include <QScreen>
-#include <QSpacerItem>
+#include <QSizePolicy>
 #include <QSplitter>
 #include <QSqlDatabase>
 #include <QSqlRecord>
 #include <QSqlRelationalTableModel>
 #include <QSqlError>
 #include <QTableView>
+#include <QToolBar>
 #include <QVBoxLayout>
 #include <QWindow>
 
@@ -73,15 +74,45 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 //    QLineEdit *taxaFilterField = new QLineEdit(this);
 //    QLabel *taxFilterLabel = new QLabel(this);
 //    taxFilterLabel->setText(tr("Filter taxa:"));
+    QToolBar *taxaTools = new QToolBar(tr("Taxa"), this);
+    QToolBar *obsTools = new QToolBar(tr("Observations"), this);
+
+    // Taxa tools
+    QPushButton *addTaxon = new QPushButton(tr("New taxon"), this);
+//    mainLayout->addWidget(addTaxon, 2, 0);
+    connect(addTaxon, &QPushButton::released, this, &MainWindow::getNewTaxon);
+
+    QWidget *taxaToolsSpacer = new QWidget(taxaTools);
+    taxaToolsSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    taxaTools->addWidget(addTaxon);
+    taxaTools->addWidget(taxaToolsSpacer);
+    //    mainLayout->addWidget(taxFilterLabel, 0, 0);
+    //    mainLayout->addWidget(taxaFilterField, 0, 1);
+
+
+    // Observation tools
     obsFilterField = new QLineEdit(this);
     QLabel *obsFilterLabel = new QLabel(this);
     obsFilterLabel->setBuddy(obsFilterField);
     obsFilterLabel->setText(tr("Filter observations:"));
 
-//    mainLayout->addWidget(taxFilterLabel, 0, 0);
-//    mainLayout->addWidget(taxaFilterField, 0, 1);
-    mainLayout->addWidget(obsFilterLabel, 0, 2);
-    mainLayout->addWidget(obsFilterField, 0, 3);
+    QPushButton *addObs = new QPushButton(tr("New observation"), this);
+    //    mainLayout->addWidget(addObs, 2, 3);
+    // TEMPORARY!!!
+    connect(addObs, &QPushButton::released, this, &MainWindow::updateObsTable);
+    // END TEMP
+
+    QWidget *obsToolsSpacer = new QWidget(obsTools);
+    obsToolsSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    obsTools->addWidget(addObs);
+    obsTools->addWidget(obsToolsSpacer);
+    obsTools->addWidget(obsFilterLabel);
+    obsTools->addWidget(obsFilterField);
+
+    mainLayout->addWidget(taxaTools, 0, 0);
+    mainLayout->addWidget(obsTools, 0, 1, 1, -1);
+//    mainLayout->addWidget(obsFilterLabel, 0, 2);
+//    mainLayout->addWidget(obsFilterField, 0, 3);
 //    mainLayout->addWidget(taxaTableView, 1, 0);
 //    mainLayout->addWidget(obsTableView, 1, 1, 1, -1);
 //    mainLayout->setColumnStretch(1, 2);
@@ -92,17 +123,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     splitter->addWidget(taxaTableView);
     splitter->addWidget(obsTableView);
     splitter->setStretchFactor(1, 2);
-
-    QPushButton *addObs = new QPushButton(tr("New observation"), this);
-    mainLayout->addWidget(addObs, 2, 3);
-
-    // TEMPORARY!!!
-    connect(addObs, &QPushButton::released, this, &MainWindow::updateObsTable);
-    // END TEMP
-
-    QPushButton *addTaxon = new QPushButton(tr("New taxon"), this);
-    mainLayout->addWidget(addTaxon, 2, 0);
-    connect(addTaxon, &QPushButton::released, this, &MainWindow::getNewTaxon);
 
     mainLayout->setColumnStretch(1, 2);
 }
@@ -484,11 +504,12 @@ void MainWindow::onObsFilterEdited(const QString &string)
     }
     filter += QString(")");
 
+    // TODO: Fix the taxon filter as it should no longer rely on a string
     if (taxonFilter != "") {
         filter += (QString(" AND (observations.taxon = '%1')").arg(taxonFilter));
     }
 
-    qDebug() << filter;
+//    qDebug() << filter;
 
     observationsTable->setFilter(filter);
     observationsTable->select();

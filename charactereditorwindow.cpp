@@ -129,34 +129,25 @@ void CharacterEditorWindow::initEditorArea()
     // Add some up-down buttons for reordering states
 //    stateTools = new QToolBar(this);
 
-    QSize buttonSize;
-    buttonSize.setHeight(25);
-    buttonSize.setWidth(25);
-
-    QWidget *box = new QWidget(this);
-    box->setLayout(new QVBoxLayout(box));
-//    stateTools->setOrientation(Qt::Vertical);
+    stateTools = new QToolBar(this);
+    stateTools->setOrientation(Qt::Vertical);
     moveStateUp = new QToolButton(this);
     moveStateUp->setArrowType(Qt::UpArrow);
-    moveStateUp->setToolTip(tr("Move state up in list"));
-    moveStateUp->setFixedSize(buttonSize);
+    moveStateUp->setToolTip(tr("Reorder state up"));
     moveStateDn = new QToolButton(this);
     moveStateDn->setArrowType(Qt::DownArrow);
-    moveStateDn->setToolTip(tr("Move state down in list"));
-    moveStateDn->setFixedSize(buttonSize);
+    moveStateDn->setToolTip(tr("Reorder state down"));
     newState = new QToolButton(this);
-    newState->setText("+");
-    newState->setFixedSize(buttonSize);
+    newState->setIcon(QIcon(":/resources/icons/add_new.png"));
     newState->setToolTip(tr("Add a state to this character"));
     deleteState = new QToolButton(this);
     deleteState->setIcon(QApplication::style()->standardIcon(QStyle::SP_DialogDiscardButton));
     deleteState->setToolTip(tr("Delete state from this character"));
-    deleteState->setFixedSize(buttonSize);
-    box->layout()->addWidget(moveStateUp);
-    box->layout()->addWidget(moveStateDn);
-    box->layout()->addWidget(newState);
-    box->layout()->addWidget(deleteState);
-    charWindLayout->addWidget(box, 3, 2);
+    stateTools->addWidget(moveStateUp);
+    stateTools->addWidget(moveStateDn);
+    stateTools->addWidget(newState);
+    stateTools->addWidget(deleteState);
+    charWindLayout->addWidget(stateTools, 3, 2);
 
     // Create state button connections
     connect(newState, &QToolButton::released, this, &CharacterEditorWindow::newStateAction);

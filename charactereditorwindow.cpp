@@ -155,10 +155,9 @@ void CharacterEditorWindow::initEditorArea()
 
     qDebug() << moveStateDn->size().height();
 
-    QString charID;
-    charID = charTable_p->record(0).value(QString("char_id")).toString();
-//    statesTable_p->setFilter(QString("states.character = '%1' AND label != 'missing' AND label != 'inapplicable'").arg(charID));
-    statesTable_p->setFilter(QString("states.character = '%1'").arg(charID));
+    int charID;
+    charID = charTable_p->record(0).value(QString("char_id")).toInt();
+    statesTable_p->setFilter(QString("states.character = %1").arg(charID));
 }
 
 void CharacterEditorWindow::deleteCharAction()

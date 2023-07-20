@@ -42,6 +42,8 @@ void StateSelectorDelegate::setEditorData(QWidget *editor, const QModelIndex &in
             stateLabels.push_back(query.value(0).toString());
         }
     }
+    stateLabels.push_back(QString("missing"));
+    stateLabels.push_back(QString("inapplicable"));
     comboBox->addItems(stateLabels);
 }
 
@@ -63,10 +65,17 @@ void StateSelectorDelegate::setModelData(QWidget *editor, QAbstractItemModel *mo
     query.next();
     charID = query.value(0).toInt();
 
-    query.prepare("UPDATE observations SET state = (SELECT state_id FROM states WHERE character = :char_id AND label = :state) WHERE rowid = :rown");
-    query.bindValue(":char_id", charID);
-    query.bindValue(":state", key);
-    query.bindValue(":rown", rowid);
+    if (key != "missing" && key != "inapplicable") {
+        query.prepare("UPDATE observations SET state = (SELECT state_id FROM states WHERE character = :char_id AND label = :state) WHERE rowid = :rown");
+        query.bindValue(":char_id", charID);
+        query.bindValue(":state", key);
+        query.bindValue(":rown", rowid);
+    } else {
+        query.prepare("UPDATE observations SET state = (SELECT state_id FROM states WHERE label = :state) WHERE rowid = :rown");
+        query.bindValue(":state", key);
+        query.bindValue(":rown", rowid);
+    }
+
     if(!query.exec()){
         qDebug() << query.lastError().text();
     }

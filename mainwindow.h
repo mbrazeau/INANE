@@ -29,13 +29,13 @@ public slots:
     void importNexus();
     void exportNexus();
     void openCharTableView();
+    void openStateTableView();
     void aboutMenu();
     void addTaxon(const QString &name);
 
 private:
     void createMenus();
     void showMessage(QString message);
-    void openStateTableView();
     void showInitDialog();
     void createMainTables();
     void configMainTables();
@@ -64,6 +64,8 @@ private:
     QTableView *charTableView;
     QTableView *obsTableView;
     QTableView *stateTableView;
+
+    QWidget *statesWindow;
 
     QString path;
 

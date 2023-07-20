@@ -65,12 +65,13 @@ MainMenu::MainMenu(MainWindow *parent) : QMenuBar(parent)
     dataMenuActions.push_back(m_charsEdit);
     connect(m_charsEdit, &QAction::triggered, parent, &MainWindow::openCharTableView);
 
-    //     QAction *act = charsMenu->actions().at(0);
-    //     act->setDisabled(true);
-    //     QAction *editStatesAct = new QAction(tr("Edit states..."), this);
-    //     charsMenu->addAction(editStatesAct);
-    //     connect(editStatesAct, &QAction::triggered, this, &MainWindow::openStateTableView);
-
+    // TEMPORARY
+    QAction *m_statesEdit = new QAction(tr("Edit states..."), this);
+    m_charsMenu->addAction(m_statesEdit);
+    dataMenuActions.push_back(m_statesEdit);
+    connect(m_statesEdit, &QAction::triggered, parent, &MainWindow::openStateTableView);
+//    openStateTableView
+    // END TEMP
 
     // Help
     m_helpMenu = addMenu(tr("&Help"));

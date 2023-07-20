@@ -166,7 +166,8 @@ void CharacterEditorWindow::initEditorArea()
 
     QString charID;
     charID = charTable_p->record(0).value(QString("char_id")).toString();
-    statesTable_p->setFilter(QString("states.character = '%1' AND label != 'missing' AND label != 'inapplicable'").arg(charID));
+//    statesTable_p->setFilter(QString("states.character = '%1' AND label != 'missing' AND label != 'inapplicable'").arg(charID));
+    statesTable_p->setFilter(QString("states.character = '%1'").arg(charID));
 }
 
 void CharacterEditorWindow::deleteCharAction()
@@ -226,7 +227,8 @@ void CharacterEditorWindow::newCharacterAction()
     query.exec(QString("INSERT INTO states (character, label) VALUES (%1, 'missing')").arg(newID));
     query.exec(QString("INSERT INTO states (character, label) VALUES (%1, 'inapplicable')").arg(newID));
 
-    statesTable_p->setFilter(QString("character = %1 AND label != 'missing' AND label != 'inapplicable'").arg(newID)); //Re-enable filter on new characters
+//    statesTable_p->setFilter(QString("character = %1 AND label != 'missing' AND label != 'inapplicable'").arg(newID)); //Re-enable filter on new characters
+    statesTable_p->setFilter(QString("character = %1").arg(newID)); //Re-enable filter on new characters
 //    mapper->submit();
 
     charTableView->setEnabled(false);
@@ -350,7 +352,8 @@ void CharacterEditorWindow::deleteStateAction()
 
     // First, replace all instances of this character in the observations table with missing
     query.prepare("UPDATE observations "
-                  "SET state = (SELECT state_id FROM states WHERE label = 'missing' AND character = :char_id) "
+//                  "SET state = (SELECT state_id FROM states WHERE label = 'missing' AND character = :char_id) "
+                  "SET state = (SELECT state_id FROM states WHERE label = 'missing' ) "
                   "WHERE state = :state_id");
     query.bindValue(":char_id", charID);
     query.bindValue(":state_id", stateID);
@@ -368,7 +371,8 @@ void CharacterEditorWindow::filterStatesByChar(const QModelIndex &index)
     QString charID;
     charID = charTable_p->record(index.row()).value(QString("char_id")).toString();
     statesTable_p->filter().clear();
-    statesTable_p->setFilter(QString("character = '%1' AND label != 'missing' AND label != 'inapplicable'").arg(charID));
+//    statesTable_p->setFilter(QString("character = '%1' AND label != 'missing' AND label != 'inapplicable'").arg(charID));
+    statesTable_p->setFilter(QString("character = '%1' ").arg(charID));
 }
 
 void CharacterEditorWindow::onCharacterClicked(const QModelIndex &index)

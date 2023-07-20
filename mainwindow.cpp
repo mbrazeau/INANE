@@ -269,7 +269,7 @@ void MainWindow::importNexus()
         QString label = nxreader.getCharLabel(i);
         charUUID.addData(label.toLocal8Bit());
 
-        qDebug() << label;
+//        qDebug() << label;
 
         for (j = 0; j < nxreader.getNumStatesForChar(i); ++j) {
             QString label = nxreader.getStateLabel(i, j);
@@ -293,13 +293,13 @@ void MainWindow::importNexus()
         }
         query.next();
         int charID = query.value(0).toInt();
-        qDebug() << "Char ID: " << charID;
+//        qDebug() << "Char ID: " << charID;
         // Insert into the state table
         for (j = 0; j < nxreader.getNumStatesForChar(i); ++j) {
 
             QString stateLabel = QString(nxreader.getStateLabel(i, j).toLocal8Bit());
             if (stateLabel != " ") {
-                qDebug() << "stat label: " << stateLabel;
+//                qDebug() << "state label: " << stateLabel;
                 query.prepare(QString("INSERT INTO states (character, label) VALUES (:character, :label)"));
                 //            query.bindValue(":state_id", ctr);
                 query.bindValue(":character", charID);
@@ -309,9 +309,17 @@ void MainWindow::importNexus()
                 }
             }
         }
-        query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('?', %1, '%2')").arg(charID).arg(QString("missing")));
-        query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('-', %1, '%2')").arg(charID).arg(QString("inapplicable")));
+//        query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('?', %1, '%2')").arg(charID).arg(QString("missing")));
+//        query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('-', %1, '%2')").arg(charID).arg(QString("inapplicable")));
     }
+
+    if (!query.exec(QString("INSERT INTO states (character, label) VALUES (NULL, '%1')").arg(QString("inapplicable")))) {
+        qDebug() << query.lastError().text();
+    }
+    if (!query.exec(QString("INSERT INTO states (character, label) VALUES (NULL, '%1')").arg(QString("missing")))) {
+        qDebug() << query.lastError().text();
+    }
+
 
     // Process the individual observations in the matrix and insert them to the observations table
     for (i = 0; i < nxreader.getNtax(); ++i) {
@@ -339,8 +347,8 @@ void MainWindow::importNexus()
             for (k = 0; k < nxreader.getNumStates(i, j); ++k) {
                 QString statelabel;
                 statelabel = nxreader.getStateLabel(i, j, k);
-                qDebug() << "state: " << statelabel;
-//                if (statelabel != "missing" && statelabel != "inapplicable") {
+//                qDebug() << "state: " << statelabel;
+                if ((statelabel != QString("missing")) && (statelabel != QString("inapplicable"))) {
                     query.prepare(QString("INSERT INTO observations (taxon, character, state) "
                                           "VALUES (:taxon, :character, (SELECT state_id FROM states WHERE character = :character AND label = :label))"));
                     query.bindValue(":taxon", taxID);
@@ -349,16 +357,16 @@ void MainWindow::importNexus()
                     if (!query.exec()) {
                         qDebug() << query.lastError().text();
                     }
-//                } else {
-//                    query.prepare(QString("INSERT INTO observations (taxon, character, state) "
-//                                          "VALUES (:taxon, :character, (SELECT state_id FROM states WHERE :label = 'missing' OR :label = 'inapplicable'))"));
-//                    query.bindValue(":taxon", taxID);
-//                    query.bindValue(":character", charID);
-//                    query.bindValue(":label", statelabel);
-//                    if (!query.exec()) {
-//                        qDebug() << query.lastError().text();
-//                    }
-//                }
+                } else {
+                    query.prepare(QString("INSERT INTO observations (taxon, character, state) "
+                                          "VALUES (:taxon, :character, (SELECT state_id FROM states WHERE label = :label))"));
+                    query.bindValue(":taxon", taxID);
+                    query.bindValue(":character", charID);
+                    query.bindValue(":label", statelabel);
+                    if (!query.exec()) {
+                        qDebug() << query.lastError().text();
+                    }
+                }
             }
             QSqlDatabase::database().commit();
         }
@@ -494,21 +502,25 @@ void MainWindow::openCharTableView()
 
 void MainWindow::openStateTableView()
 {
-    QWidget *statesWindow = new QWidget;
+    statesWindow = new QWidget;
 
-    QTableView *stateTableView = new QTableView;
+    stateTableView = new QTableView(statesWindow);
     stateTableView->setModel(stateTable);
+    stateTable->setTable("states");
+    stateTable->select();
+    stateTable->setFilter("");
 
-    statesWindow->setLayout(new QHBoxLayout);
+    statesWindow->setLayout(new QHBoxLayout(stateTableView));
     statesWindow->layout()->addWidget(stateTableView);
 
-    stateTableView->resizeColumnsToContents();
+//    stateTableView->resizeColumnsToContents();
 
-    connect(stateTable, &QSqlRelationalTableModel::dataChanged, this, &MainWindow::onDataChanged);
+//    connect(stateTable, &QSqlRelationalTableModel::dataChanged, this, &MainWindow::onDataChanged);
 
-    statesWindow->setMinimumWidth(stateTableView->horizontalHeader()->length());
+//    statesWindow->setMinimumWidth(stateTableView->horizontalHeader()->length());
 
-    stateTable->select();
+
+    stateTableView->show();
     statesWindow->show();
 }
 
@@ -696,8 +708,8 @@ void MainWindow::updateObsTable()
     QSqlQuery query;
 
     query.prepare("INSERT INTO observations (taxon, character)"
-                  "SELECT taxa.taxon_id, characters.char_id "
-                  "FROM taxa CROSS JOIN characters");
+                  " SELECT taxa.taxon_id, characters.char_id "
+                  " FROM taxa CROSS JOIN characters");
 
     if (!query.exec()) {
         qDebug() << query.lastError().text();

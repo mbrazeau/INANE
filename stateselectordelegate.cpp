@@ -15,7 +15,8 @@ StateSelectorDelegate::StateSelectorDelegate(QObject *parent)
 
 /*This mostly borrows the code for QSqlRelationalDelegate verbatim with the exception that a filter is applied
   to the child relational model. This allows the delegate to display only the states relevant to the chosen
-  character. */
+  character. It's possible this could've been done by deriving the QSqlRelationalDelegate instead, but the filter
+  should be called in createEditor after the check for the existience of the child model. */
 
 QWidget *StateSelectorDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {

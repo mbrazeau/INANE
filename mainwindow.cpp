@@ -13,6 +13,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QProgressDialog>
 #include <QSqlRelationalDelegate>
 #include <QScreen>
 #include <QSizePolicy>
@@ -79,12 +80,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     // Taxa tools
     QPushButton *addTaxon = new QPushButton(tr("New taxon"), this);
+    QPushButton *deleteTaxon = new QPushButton(tr("Delete taxon"), this);
 //    mainLayout->addWidget(addTaxon, 2, 0);
     connect(addTaxon, &QPushButton::released, this, &MainWindow::getNewTaxon);
 
     QWidget *taxaToolsSpacer = new QWidget(taxaTools);
     taxaToolsSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     taxaTools->addWidget(addTaxon);
+    taxaTools->addWidget(deleteTaxon);
     taxaTools->addWidget(taxaToolsSpacer);
     //    mainLayout->addWidget(taxFilterLabel, 0, 0);
     //    mainLayout->addWidget(taxaFilterField, 0, 1);
@@ -104,8 +107,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     QWidget *obsToolsSpacer = new QWidget(obsTools);
     obsToolsSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    obsTools->addWidget(addObs);
     obsTools->addWidget(obsToolsSpacer);
+    obsTools->addWidget(addObs);
+    obsTools->addSeparator();
+    obsTools->addSeparator();
     obsTools->addWidget(obsFilterLabel);
     obsTools->addWidget(obsFilterField);
 
@@ -279,13 +284,22 @@ void MainWindow::importNexus()
     unsigned int i, j, k;
     
     // Process the taxa and insert them to the taxa table
+    QProgressDialog progress("Importing taxa...", "Abort", 0, nxreader.getNtax(), this);
+    progress.setWindowModality(Qt::WindowModal);
     for (i = 0; i < nxreader.getNtax(); ++i) {
+        progress.setValue(i);
         QString taxname = nxreader.getTaxLabel(i);
         addTaxon(taxname);
     }
+    progress.setValue(nxreader.getNtax());
 
     // Process the characters and insert them into the characters table
+    progress.reset();
+    progress.setLabelText("Importing characters...");
+    progress.setMinimum(0);
+    progress.setMaximum(nxreader.getNchar());
     for (i = 0; i < nxreader.getNchar(); ++i) {
+        progress.setValue(i);
         QString label = nxreader.getCharLabel(i);
         charUUID.addData(label.toLocal8Bit());
 
@@ -308,9 +322,10 @@ void MainWindow::importNexus()
             qDebug() << "Error inserting " << label;
         }
 
-        if (!query.exec(QString("SELECT char_id FROM characters WHERE char_GUUID = '%1'").arg(shortHash))) {
+        if (!query.exec(QString("SELECT last_insert_rowid() FROM characters"))) {
             qDebug() << "Error selecting " << shortHash;
         }
+
         query.next();
         int charID = query.value(0).toInt();
 //        qDebug() << "Char ID: " << charID;
@@ -340,9 +355,17 @@ void MainWindow::importNexus()
         qDebug() << query.lastError().text();
     }
 
+    progress.setValue(nxreader.getNtax());
+
+    progress.reset();
+    progress.setLabelText("Importing matrix data...");
+    progress.setMinimum(0);
+    progress.setMaximum(nxreader.getNtax() * nxreader.getNchar());
 
     // Process the individual observations in the matrix and insert them to the observations table
+    int c = 0;
     for (i = 0; i < nxreader.getNtax(); ++i) {
+//        progress.setValue(i);
         QString taxname = nxreader.getTaxLabel(i);
 
         int taxID;
@@ -355,6 +378,8 @@ void MainWindow::importNexus()
         }
 
         for (j = 0; j < nxreader.getNchar(); ++j) {
+            progress.setValue(c);
+            c++;
             QString charlabel = nxreader.getCharLabel(j);
             query.exec(QString("SELECT char_id FROM characters WHERE rowid = %1").arg(j + 1));
             while (query.next()) {
@@ -391,6 +416,8 @@ void MainWindow::importNexus()
             QSqlDatabase::database().commit();
         }
     }
+
+    progress.setMaximum(nxreader.getNchar());
 
     taxaTable->select();
     charTable->select();
@@ -661,7 +688,7 @@ void MainWindow::configMainTables()
     observationsTable->setHeaderData(3, Qt::Horizontal, tr("State"));
     observationsTable->setHeaderData(4, Qt::Horizontal, tr("Notes"));
 
-    StateSelectorDelegate *obsDelegate = new StateSelectorDelegate(this);
+    StateSelectorDelegate *obsDelegate = new StateSelectorDelegate(observationsTable);
     obsTableView->setItemDelegateForColumn(3, obsDelegate);
     obsTableView->setItemDelegateForColumn(1, new NotEditableDelegate(obsTableView));
     obsTableView->setItemDelegateForColumn(2, new NotEditableDelegate(obsTableView));

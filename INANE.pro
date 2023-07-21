@@ -6,10 +6,10 @@ greaterThan(QT_MAJOR_VERSION, 5): QT += sql widgets
 
 SOURCES += \
     charactereditorwindow.cpp \
-    compdatabase.cpp \
     main.cpp \
     mainmenu.cpp \
     mainwindow.cpp \
+    mdatabasemanager.cpp \
     nexusreader.cpp \
     noteditabledelegate.cpp \
     stateselectordelegate.cpp \
@@ -17,9 +17,9 @@ SOURCES += \
 
 HEADERS += \
     charactereditorwindow.h \
-    compdatabase.h \
     mainmenu.h \
     mainwindow.h \
+    mdatabasemanager.h \
     nexusreader.h \
     noteditabledelegate.h \
     stateselectordelegate.h \

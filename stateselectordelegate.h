@@ -1,11 +1,12 @@
 #ifndef STATESELECTORDELEGATE_H
 #define STATESELECTORDELEGATE_H
 
-#include <QStyledItemDelegate>
+#include <QItemDelegate>
 #include <QObject>
 #include <QWidget>
+#include <QMap>
 
-class StateSelectorDelegate : public QStyledItemDelegate
+class StateSelectorDelegate : public QItemDelegate
 {
     Q_OBJECT
 public:
@@ -20,6 +21,11 @@ public:
 
     void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option,
                               const QModelIndex &index) const override;
+    void paint(QPainter *painter, const QStyleOptionViewItem &option,
+                        const QModelIndex &index) const override;
+
+private:
+
 };
 
 #endif // STATESELECTORDELEGATE_H

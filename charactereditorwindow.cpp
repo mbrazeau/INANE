@@ -45,7 +45,7 @@ CharacterEditorWindow::CharacterEditorWindow(QWidget *parent) : QWidget(parent)
     charWindLayout->addWidget(charListButtons, 8, 0);
 
     charTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    charTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    charTableView->setSelectionMode(QAbstractItemView::SingleSelection);
     charTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     charTable_p = nullptr;
@@ -96,7 +96,7 @@ void CharacterEditorWindow::initEditorArea()
 
     mapper = new QDataWidgetMapper(this);
     mapper->setModel(charTable_p);
-    mapper->setSubmitPolicy(QDataWidgetMapper::ManualSubmit);
+    mapper->setSubmitPolicy(QDataWidgetMapper::AutoSubmit);
     mapper->setItemDelegate(new QSqlRelationalDelegate(this));
     mapper->addMapping(labelField, charTable_p->fieldIndex("label"));
     mapper->addMapping(sourceField, charTable_p->fieldIndex("source"));
@@ -197,36 +197,31 @@ void CharacterEditorWindow::newCharacterAction()
     int row = mapper->currentIndex();
     qDebug() << "Row: " << row;
 
-    statesTable_p->setFilter("x"); // Temporarily disable filter
+    statesTable_p->setFilter(""); // Temporarily disable filter
 
     QSqlQuery query;
-    if(!query.exec("INSERT INTO characters (char_GUUID, label) VALUES (NULL, 'new character')")) {
+    if(!query.exec("INSERT INTO characters (label) VALUES ('new character')")) {
         qDebug() << "Failed to create new character!";
     }
 
+    charTable_p->select();
+
     mapper->toLast();
+    qDebug() << "Post-insert row: " << mapper->currentIndex();
 
     int newID;
-
-    charTable_p->select();
-    mapper->setCurrentIndex(row + 1);
-
-    newID = charTable_p->record(row+1).value(QString("char_id")).toInt();
+    query.exec("SELECT last_insert_rowid()");
+    query.next();
+    newID = query.value(0).toInt();
     query.exec(QString("INSERT INTO states (character, label) VALUES (%1, 'state_1')").arg(newID));
     query.exec(QString("INSERT INTO states (character, label) VALUES (%1, 'state_2')").arg(newID));
-    query.exec(QString("INSERT INTO states (character, label) VALUES (%1, 'missing')").arg(newID));
-    query.exec(QString("INSERT INTO states (character, label) VALUES (%1, 'inapplicable')").arg(newID));
+//    statesTable_p->select();
 
-//    statesTable_p->setFilter(QString("character = %1 AND label != 'missing' AND label != 'inapplicable'").arg(newID)); //Re-enable filter on new characters
     statesTable_p->setFilter(QString("character = %1").arg(newID)); //Re-enable filter on new characters
-//    mapper->submit();
 
     charTableView->setEnabled(false);
     newChar->setEnabled(false);
     deleteChar->setEnabled(false);
-
-    charTable_p->select();
-    statesTable_p->select();
 
     mapper->toLast();
 }

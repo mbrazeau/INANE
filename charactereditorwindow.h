@@ -73,6 +73,7 @@ private:
     void deleteStateAction();
     void filterStatesByChar(const QModelIndex &index);
 
+
 //private slots:
 
     void onCharacterClicked(const QModelIndex &index);

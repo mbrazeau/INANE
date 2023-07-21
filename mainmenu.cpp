@@ -61,6 +61,7 @@ MainMenu::MainMenu(MainWindow *parent) : QMenuBar(parent)
     // Characters menu
     m_charsMenu = addMenu(tr("&Characters"));
     m_charsEdit = new QAction(tr("Edit characters..."), this);
+    m_charsEdit->setShortcut(QKeySequence(Qt::SHIFT | Qt::CTRL | Qt::Key_E));
     m_charsMenu->addAction(m_charsEdit);
     dataMenuActions.push_back(m_charsEdit);
     connect(m_charsEdit, &QAction::triggered, parent, &MainWindow::openCharTableView);

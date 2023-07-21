@@ -97,3 +97,15 @@ void StateSelectorDelegate::paint(QPainter *painter, const QStyleOptionViewItem 
 
     QItemDelegate::paint(painter, option, index);
 }
+
+
+bool StateSelectorDelegate::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::Wheel) {
+//        qDebug() << "Wheeee!";
+//        event->ignore();
+        return true;
+    }
+
+    QItemDelegate::eventFilter(watched, event);
+}

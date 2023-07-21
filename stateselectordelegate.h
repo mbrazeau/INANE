@@ -24,8 +24,13 @@ public:
     void paint(QPainter *painter, const QStyleOptionViewItem &option,
                         const QModelIndex &index) const override;
 
+
 private:
 
+
+    // QObject interface
+public:
+    bool eventFilter(QObject *watched, QEvent *event) override;
 };
 
 #endif // STATESELECTORDELEGATE_H

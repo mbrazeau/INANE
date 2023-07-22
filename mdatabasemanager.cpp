@@ -13,8 +13,15 @@ void MDatabaseManager::createMainTables()
                "taxon_id    INTEGER PRIMARY KEY,"
                "taxon_GUUID VARCHAR(7) UNIQUE,"
                "name        VARCHAR(100),"
+               "otu         VARCHAR(100),"
+               "taxgroup    INTEGER,"
                "included    INT(1),"
-               "author      VARCHAR(100))");
+               "author      VARCHAR(100),"
+               "FOREIGN KEY (taxgroup) REFERENCES taxongroups (group_id))");
+
+    query.exec("CREATE TABLE taxongroups ("
+               "group_id    INTEGER PRIMARY KEY,"
+               "groupname   VARCHAR(100))");
 
     query.exec("CREATE TABLE characters ("
                "char_id    INTEGER PRIMARY KEY,"

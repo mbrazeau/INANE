@@ -55,6 +55,7 @@ private:
 //    QSqlDatabase db;
 
     QSqlRelationalTableModel *taxaTable;
+    QSqlRelationalTableModel *groupsTable;
     QSqlRelationalTableModel *charTable;
     QSqlRelationalTableModel *observationsTable;
     QSqlRelationalTableModel *stateTable;

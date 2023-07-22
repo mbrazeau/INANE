@@ -18,10 +18,7 @@
 #include <QScreen>
 #include <QSizePolicy>
 #include <QSplitter>
-#include <QSqlDatabase>
-#include <QSqlRecord>
-#include <QSqlRelationalTableModel>
-#include <QSqlError>
+#include <QtSql>
 #include <QTableView>
 #include <QToolBar>
 #include <QVBoxLayout>
@@ -105,6 +102,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     connect(addObs, &QPushButton::released, this, &MainWindow::updateObsTable);
     // END TEMP
 
+    QPushButton *clearObsFilterBtn = new QPushButton(tr("Clear filters"), this);
+    connect(clearObsFilterBtn, &QPushButton::released, this, [&](){observationsTable->setFilter("");});
+
     QWidget *obsToolsSpacer = new QWidget(obsTools);
     obsToolsSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     obsTools->addWidget(obsToolsSpacer);
@@ -113,6 +113,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     obsTools->addSeparator();
     obsTools->addWidget(obsFilterLabel);
     obsTools->addWidget(obsFilterField);
+    obsTools->addWidget(clearObsFilterBtn);
 
     mainLayout->addWidget(taxaTools, 0, 0);
     mainLayout->addWidget(obsTools, 0, 1, 1, -1);
@@ -165,7 +166,7 @@ void MainWindow::addTaxon(const QString &name)
     charUUID.reset();
     QString shortHash = QString(hashresult.toHex().remove(0, 2 * hashresult.size() - 7));
 
-    query.prepare(QString("INSERT INTO taxa (taxon_GUUID, name) VALUES (:taxon_id, :name)"));
+    query.prepare(QString("INSERT INTO taxa (taxon_GUUID, name, taxgroup) VALUES (:taxon_id, :name, (SELECT group_id FROM taxongroups WHERE groupname = 'default group'))"));
     query.bindValue(":taxon_id", shortHash);
     query.bindValue(":name", name);
     query.exec();
@@ -544,7 +545,19 @@ void MainWindow::onObsFilterEdited(const QString &string)
 
 void MainWindow::openCharTableView()
 {
-    CharacterEditorWindow *charEditor = new CharacterEditorWindow;
+    /* This block helps trigger the character editor at the character corresponding to the
+     * the current character of the slected row of the observations table. */
+    // TODO: it will be good to review this logic.
+    int obsID;
+    obsID = observationsTable->record(obsTableView->currentIndex().row()).field("id").value().toInt();
+    qDebug() << "ID of selected observation: " << obsID;
+    QSqlQuery query;
+    query.exec(QString("SELECT character FROM observations WHERE id = %1").arg(obsID));
+    query.next();
+    int charID = query.value(0).toInt();
+
+
+    CharacterEditorWindow *charEditor = new CharacterEditorWindow(charID);
     connect(charTable, &QSqlRelationalTableModel::dataChanged, this, &MainWindow::onDataChanged);
     connect(stateTable, &QSqlRelationalTableModel::dataChanged, this, &MainWindow::onDataChanged);
     charEditor->show();
@@ -618,8 +631,17 @@ void MainWindow::createMainTables()
                 "taxon_id    INTEGER PRIMARY KEY,"
                 "taxon_GUUID VARCHAR(7) UNIQUE,"
                 "name        VARCHAR(100),"
+                "otu         VARCHAR(100),"
+                "taxgroup    INTEGER,"
                 "included    INT(1),"
-                "author      VARCHAR(100))");
+                "author      VARCHAR(100),"
+                "FOREIGN KEY (taxgroup) REFERENCES taxongroups (group_id))");
+
+    query.exec("CREATE TABLE taxongroups ("
+               "group_id    INTEGER PRIMARY KEY,"
+               "groupname   VARCHAR(100))");
+
+    query.exec("INSERT INTO taxongroups (groupname) VALUES ('default group')");
 
     query.exec("CREATE TABLE characters ("
                 "char_id    INTEGER PRIMARY KEY,"
@@ -665,6 +687,11 @@ void MainWindow::configMainTables()
     taxaTable->setHeaderData(2, Qt::Horizontal, tr("Name"));
     taxaTable->setHeaderData(3, Qt::Horizontal, tr("Author"));
 
+    groupsTable = new QSqlRelationalTableModel(this, QSqlDatabase::database());
+    groupsTable->setTable("taxongroups");
+
+    taxaTable->setRelation(4, QSqlRelation("taxongroups", "group_id", "groupname"));
+
     charTable = new QSqlRelationalTableModel(this, QSqlDatabase::database());
     charTable->setTable("characters");
     charTable->setEditStrategy(QSqlRelationalTableModel::OnManualSubmit);
@@ -706,8 +733,9 @@ void MainWindow::configMainTables()
     taxaTableView->setColumnHidden(1, true);
     taxaTableView->setColumnHidden(3, true);
     taxaTableView->setColumnHidden(4, true);
+    taxaTableView->setColumnHidden(5, true);
+    taxaTableView->setColumnHidden(6, true);
     taxaTableView->horizontalHeader()->setStretchLastSection(true);
-
 
     obsTableView->setColumnHidden(0, true);
 //    obsTableView->setSortingEnabled(true);

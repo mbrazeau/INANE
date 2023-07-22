@@ -26,14 +26,17 @@ class CharacterEditorWindow : public QWidget
     Q_OBJECT
 
 public:
-    explicit CharacterEditorWindow(QWidget *parent = nullptr);
+    explicit CharacterEditorWindow(const int row = -1, QWidget *parent = nullptr);
 
 
 private:
     QGridLayout *charWindLayout;
     QTableView  *charTableView;
+    QSqlRelationalTableModel *taxaTable_p;
+    QSqlRelationalTableModel *groupsTable_p;
     QSqlRelationalTableModel *charTable_p;
     QSqlRelationalTableModel *statesTable_p;
+    QSqlRelationalTableModel *observartionsTable_p;
     QWidget *editorArea;
 
     QDataWidgetMapper *mapper;
@@ -63,7 +66,7 @@ private:
     QPushButton *cancelButton;
 
     void setCharTable();
-    void initEditorArea();
+    void initEditorArea(const int row = -1);
     void populateEditor();
 
     void newCharacterAction();

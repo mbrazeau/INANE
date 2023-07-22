@@ -13,10 +13,6 @@
 #include <QPixmap>
 #include <QPushButton>
 #include <QtSql>
-//#include <QSqlDatabase>
-//#include <QSqlRecord>
-//#include <QSqlRelationalTableModel>
-//#include <QSqlRelationalDelegate>
 #include <QSqlError>
 #include <QStyle>
 #include <QTableView>
@@ -28,7 +24,7 @@
 #include "charactereditorwindow.h"
 #include "mainwindow.h"
 
-CharacterEditorWindow::CharacterEditorWindow(QWidget *parent) : QWidget(parent)
+CharacterEditorWindow::CharacterEditorWindow(const int row, QWidget *parent) : QWidget(parent)
 {
     setWindowModality(Qt::ApplicationModal);
     charTableView = new QTableView(this);
@@ -52,7 +48,7 @@ CharacterEditorWindow::CharacterEditorWindow(QWidget *parent) : QWidget(parent)
 
     setCharTable();
 
-    initEditorArea();
+    initEditorArea(row);
 }
 
 void CharacterEditorWindow::setCharTable()
@@ -75,7 +71,7 @@ void CharacterEditorWindow::setCharTable()
     statesTable_p->setTable("states");
 }
 
-void CharacterEditorWindow::initEditorArea()
+void CharacterEditorWindow::initEditorArea(const int row)
 {
     editorArea = new QWidget(this);
 
@@ -109,7 +105,18 @@ void CharacterEditorWindow::initEditorArea()
     statesTable->horizontalHeader()->setStretchLastSection(true);
     statesTable_p->select();
 
-    mapper->toFirst();
+    // TODO: Clean this crap.
+    if (row > 0) {
+        qDebug() << "Index: " << row;
+        mapper->setCurrentIndex(row-1);
+        charTableView->selectRow(row-1);
+        onCharacterClicked(charTableView->currentIndex());
+    } else {
+        mapper->toFirst();
+        int charID;
+        charID = charTable_p->record(0).value(QString("char_id")).toInt();
+        statesTable_p->setFilter(QString("states.character = %1").arg(charID));
+    }
     connect(charTableView, &QTableView::clicked, this, &CharacterEditorWindow::onCharacterClicked);
 
     // Place in layout
@@ -154,10 +161,6 @@ void CharacterEditorWindow::initEditorArea()
     connect(deleteState, &QToolButton::released, this, &CharacterEditorWindow::deleteStateAction);
 
     qDebug() << moveStateDn->size().height();
-
-    int charID;
-    charID = charTable_p->record(0).value(QString("char_id")).toInt();
-    statesTable_p->setFilter(QString("states.character = %1").arg(charID));
 }
 
 void CharacterEditorWindow::deleteCharAction()
@@ -337,7 +340,6 @@ void CharacterEditorWindow::deleteStateAction()
 
     // First, replace all instances of this character in the observations table with missing
     query.prepare("UPDATE observations "
-//                  "SET state = (SELECT state_id FROM states WHERE label = 'missing' AND character = :char_id) "
                   "SET state = (SELECT state_id FROM states WHERE label = 'missing' ) "
                   "WHERE state = :state_id");
     query.bindValue(":char_id", charID);
@@ -353,11 +355,11 @@ void CharacterEditorWindow::deleteStateAction()
 
 void CharacterEditorWindow::filterStatesByChar(const QModelIndex &index)
 {
-    QString charID;
-    charID = charTable_p->record(index.row()).value(QString("char_id")).toString();
+    int charID;
+    charID = charTable_p->record(index.row()).value(QString("char_id")).toInt();
     statesTable_p->filter().clear();
-//    statesTable_p->setFilter(QString("character = '%1' AND label != 'missing' AND label != 'inapplicable'").arg(charID));
-    statesTable_p->setFilter(QString("character = '%1' ").arg(charID));
+    qDebug() << "CHAR ID: " << charID;
+    statesTable_p->setFilter(QString("character = %1").arg(charID));
 }
 
 void CharacterEditorWindow::onCharacterClicked(const QModelIndex &index)

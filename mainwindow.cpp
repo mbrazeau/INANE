@@ -32,6 +32,7 @@
 #include "charactereditorwindow.h"
 #include "stateselectordelegate.h"
 #include "noteditabledelegate.h"
+#include "mdatabasemanager.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
@@ -73,6 +74,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 //    QLabel *taxFilterLabel = new QLabel(this);
 //    taxFilterLabel->setText(tr("Filter taxa:"));
     QToolBar *taxaTools = new QToolBar(tr("Taxa"), this);
+    taxaTools->setWindowTitle(tr("Taxa"));
     QToolBar *obsTools = new QToolBar(tr("Observations"), this);
 
     // Taxa tools
@@ -345,15 +347,6 @@ void MainWindow::importNexus()
                 }
             }
         }
-//        query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('?', %1, '%2')").arg(charID).arg(QString("missing")));
-//        query.exec(QString("INSERT INTO states (symbol, character, label) VALUES ('-', %1, '%2')").arg(charID).arg(QString("inapplicable")));
-    }
-
-    if (!query.exec(QString("INSERT INTO states (character, label) VALUES (NULL, '%1')").arg(QString("inapplicable")))) {
-        qDebug() << query.lastError().text();
-    }
-    if (!query.exec(QString("INSERT INTO states (character, label) VALUES (NULL, '%1')").arg(QString("missing")))) {
-        qDebug() << query.lastError().text();
     }
 
     progress.setValue(nxreader.getNtax());
@@ -625,56 +618,7 @@ void MainWindow::showInitDialog()
 
 void MainWindow::createMainTables()
 {
-    QSqlQuery query;
-
-    query.exec("CREATE TABLE taxa ("
-                "taxon_id    INTEGER PRIMARY KEY,"
-                "taxon_GUUID VARCHAR(7) UNIQUE,"
-                "name        VARCHAR(100),"
-                "otu         VARCHAR(100),"
-                "taxgroup    INTEGER,"
-                "included    INT(1),"
-                "author      VARCHAR(100),"
-                "FOREIGN KEY (taxgroup) REFERENCES taxongroups (group_id))");
-
-    query.exec("CREATE TABLE taxongroups ("
-               "group_id    INTEGER PRIMARY KEY,"
-               "groupname   VARCHAR(100))");
-
-    query.exec("INSERT INTO taxongroups (groupname) VALUES ('default group')");
-
-    query.exec("CREATE TABLE characters ("
-                "char_id    INTEGER PRIMARY KEY,"
-                "char_GUUID VARCHAR(7) UNIQUE,"
-                "label      MEDIUMTEXT,"
-                "source     MEDIUMTEXT,"
-                "included   INT(1),"
-                "notes      MEDIUMTEXT)");
-
-    query.exec("CREATE TABLE states ("
-                "state_id   INTEGER PRIMARY KEY,"
-                "symbol     VARCHAR(1),"
-                "character  INTEGER,"
-                "label      VARCHAR(200),"
-                "definition MEDIUMTEXT,"
-                "UNIQUE (character, label),"
-                "UNIQUE (character, symbol),"
-                "FOREIGN KEY (character) REFERENCES characters (char_id))");
-
-    query.exec("CREATE TABLE observations ("
-                "id        INTEGER PRIMARY KEY,"
-                "taxon     INTEGER,"
-                "character INTEGER,"
-                "state     INTEGER,"
-                "notes     MEDIUMTEXT,"
-//                "UNIQUE (taxon, character, state),"
-                "FOREIGN KEY (taxon) REFERENCES taxa (taxon_id) ON UPDATE CASCADE,"
-                "FOREIGN KEY (state) REFERENCES states (state_id) ON UPDATE CASCADE,"
-                "FOREIGN KEY (character) REFERENCES characters (char_id) ON UPDATE CASCADE)");
-
-    if (query.next()) {
-        qDebug() << query.value(0).toString();
-    }
+    MDatabaseManager::createMainTables();
 }
 
 void MainWindow::configMainTables()
@@ -785,9 +729,9 @@ void MainWindow::updateObsTable()
     // TODO: Check for valid taxa and characters?
     QSqlQuery query;
 
-    query.prepare("INSERT INTO observations (taxon, character)"
-                  " SELECT taxa.taxon_id, characters.char_id "
-                  " FROM taxa CROSS JOIN characters");
+    query.prepare("INSERT INTO observations (taxon, character, state)"
+                  " SELECT taxa.taxon_id, characters.char_id, states.state_id "
+                  " FROM taxa CROSS JOIN characters CROSS JOIN states WHERE states.label = 'missing'");
 
     if (!query.exec()) {
         qDebug() << query.lastError().text();
@@ -795,8 +739,6 @@ void MainWindow::updateObsTable()
     } else {
         qDebug() << "Query executed";
     }
-
-//    query.exec("UPDATE observations SET state = 1");
 
     observationsTable->select();
     obsTableView->resizeColumnsToContents();

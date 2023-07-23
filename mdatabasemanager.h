@@ -8,7 +8,7 @@ class MDatabaseManager
 public:
     MDatabaseManager();
 
-    void createMainTables();
+    static void createMainTables();
 
     QSqlRelationalTableModel *getModel(QString &modelName);
     int                       getId(QSqlRelationalTableModel &tableModel, QString &field, QModelIndex &index);

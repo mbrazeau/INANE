@@ -23,6 +23,8 @@ void MDatabaseManager::createMainTables()
                "group_id    INTEGER PRIMARY KEY,"
                "groupname   VARCHAR(100))");
 
+    query.exec("INSERT INTO taxongroups (groupname) VALUES ('default group')");
+
     query.exec("CREATE TABLE characters ("
                "char_id    INTEGER PRIMARY KEY,"
                "char_GUUID VARCHAR(7) UNIQUE,"
@@ -41,6 +43,8 @@ void MDatabaseManager::createMainTables()
                "UNIQUE (character, symbol),"
                "FOREIGN KEY (character) REFERENCES characters (char_id))");
 
+    query.exec("INSERT INTO states (label, character) VALUES ('missing', NULL),('inapplicable',NULL)");
+
     query.exec("CREATE TABLE observations ("
                "id        INTEGER PRIMARY KEY,"
                "taxon     INTEGER,"
@@ -51,11 +55,14 @@ void MDatabaseManager::createMainTables()
                "FOREIGN KEY (taxon) REFERENCES taxa (taxon_id) ON UPDATE CASCADE,"
                "FOREIGN KEY (state) REFERENCES states (state_id) ON UPDATE CASCADE,"
                "FOREIGN KEY (character) REFERENCES characters (char_id) ON UPDATE CASCADE)");
+
+    if (query.next()) {
+        qDebug() << query.value(0).toString();
+    }
 }
 
 int MDatabaseManager::getId(QSqlRelationalTableModel &tableModel, QString &field, QModelIndex &index)
 {
-
     return -1;
 }
 

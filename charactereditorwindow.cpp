@@ -44,6 +44,14 @@ CharacterEditorWindow::CharacterEditorWindow(const int row, QWidget *parent) : Q
     charTableView->setSelectionMode(QAbstractItemView::SingleSelection);
     charTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
+//    charTableView->verticalHeader()->setSectionsMovable(true);
+//    charTableView->setDragEnabled(true);
+//    charTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+//    charTableView->setSelectionMode(QAbstractItemView::SingleSelection);
+//    charTableView->setDragDropMode(QAbstractItemView::InternalMove);
+//    charTableView->setDropIndicatorShown(true);
+//    charTableView->setDragDropOverwriteMode(false);
+
     charTable_p = nullptr;
 
     setCharTable();
@@ -69,6 +77,9 @@ void CharacterEditorWindow::setCharTable()
 
     statesTable_p = new QSqlRelationalTableModel(this, QSqlDatabase::database());
     statesTable_p->setTable("states");
+    statesTable_p->setRelation(1, QSqlRelation("symbols", "symbol_id", "symbol"));
+    statesTable_p->setRelation(2, QSqlRelation("characters", "char_id", "label"));
+    statesTable_p->select();
 }
 
 void CharacterEditorWindow::initEditorArea(const int row)

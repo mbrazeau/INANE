@@ -1,6 +1,58 @@
 #include "mdatabasemanager.h"
 
+const char stateSymbols[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-?";
+
 MDatabaseManager::MDatabaseManager()
+{
+    // First check that a valid database is active
+    // TODO: do the above
+
+    // Allocate the tables
+    QString tableName;
+    m_taxaTable = new QSqlRelationalTableModel(nullptr, QSqlDatabase::database());
+    tableName = "taxa";
+    m_taxaTable->setTable(tableName);
+    m_tableMap.insert(tableName.toLower(), m_taxaTable);
+
+    m_groupsTable = new QSqlRelationalTableModel(nullptr, QSqlDatabase::database());
+    tableName = "taxongroups";
+    m_groupsTable->setTable(tableName);
+    m_tableMap.insert(tableName.toLower(), m_groupsTable);
+
+    m_discreteCharsTable = new QSqlRelationalTableModel(nullptr, QSqlDatabase::database());
+    tableName = "characters";
+    m_discreteCharsTable->setTable(tableName);
+    m_tableMap.insert(tableName.toLower(), m_discreteCharsTable);
+
+    m_discreteStatesTable = new QSqlRelationalTableModel(nullptr, QSqlDatabase::database());
+    tableName = "states";
+    m_discreteStatesTable->setTable(tableName);
+    m_tableMap.insert(tableName.toLower(), m_discreteStatesTable);
+
+    m_symbolsTable = new QSqlRelationalTableModel(nullptr, QSqlDatabase::database());
+    tableName = "symbols";
+    m_symbolsTable->setTable(tableName);
+    m_tableMap.insert(tableName.toLower(), m_symbolsTable);
+
+    m_subcharsTable = new QSqlRelationalTableModel(nullptr, QSqlDatabase::database());
+    tableName = "characters";
+    m_subcharsTable->setTable(tableName);
+    m_tableMap.insert(tableName.toLower(), m_subcharsTable);
+
+    m_observationsTable = new QSqlRelationalTableModel(nullptr, QSqlDatabase::database());
+    tableName = "observations";
+    m_observationsTable->setTable(tableName);
+    m_tableMap.insert(tableName.toLower(), m_observationsTable);
+
+    // Define the relations
+    m_taxaTable->setRelation(4, QSqlRelation("taxongroups", "group_id", "groupname"));
+    m_discreteStatesTable->setRelation(1, QSqlRelation("characters", "char_id", "label"));
+    m_observationsTable->setRelation(1, QSqlRelation("taxa", "taxon_id", "name"));
+    m_observationsTable->setRelation(2, QSqlRelation("characters", "char_id", "label"));
+    m_observationsTable->setRelation(3, QSqlRelation("states", "state_id", "label"));
+}
+
+MDatabaseManager::~MDatabaseManager()
 {
 
 }
@@ -9,6 +61,7 @@ void MDatabaseManager::createMainTables()
 {
     QSqlQuery query;
 
+    QSqlDatabase::database().transaction();
     query.exec("CREATE TABLE taxa ("
                "taxon_id    INTEGER PRIMARY KEY,"
                "taxon_GUUID VARCHAR(7) UNIQUE,"
@@ -35,15 +88,42 @@ void MDatabaseManager::createMainTables()
 
     query.exec("CREATE TABLE states ("
                "state_id   INTEGER PRIMARY KEY,"
-               "symbol     VARCHAR(1),"
+               "symbol     VARCHAR(20),"
                "character  INTEGER,"
                "label      VARCHAR(200),"
                "definition MEDIUMTEXT,"
                "UNIQUE (character, label),"
                "UNIQUE (character, symbol),"
-               "FOREIGN KEY (character) REFERENCES characters (char_id))");
+               "FOREIGN KEY (character) REFERENCES characters (char_id),"
+               "FOREIGN KEY (symbol) REFERENCES symbols (symbol_id))");
 
-    query.exec("INSERT INTO states (label, character) VALUES ('missing', NULL),('inapplicable',NULL)");
+    query.exec("CREATE TABLE symbols ("
+               " symbol_id INTEGER PRIMARY KEY,"
+               " rank      INTEGER,"
+               " symbol    VARCHAR(20),"
+               " UNIQUE (symbol)"
+               ")");
+
+    for (int i = 0; i < strlen(stateSymbols); ++i) {
+        QString symb = QChar(stateSymbols[i]);
+        query.prepare("INSERT INTO symbols (rank, symbol) VALUES (:rank, :symbol)");
+        query.bindValue(":rank", i + 1);
+        query.bindValue(":symbol", symb);
+        if(!query.exec()){
+            qDebug() << query.lastError().text();
+        }
+    }
+
+    query.exec("INSERT INTO states (label, character, symbol) "
+               "VALUES "
+               "('missing', NULL, (SELECT symbol_id FROM symbols WHERE symbol = '?')),"
+               "('inapplicable',NULL, (SELECT symbol_id FROM symbols WHERE symbol = '-'))");
+
+    query.exec("CREATE TABLE subchars ("
+               "subchar_id INTEGER PRIMARY KEY,"
+               "parent     INTEGER,"
+               "subchar    INTEGER"
+               ")");
 
     query.exec("CREATE TABLE observations ("
                "id        INTEGER PRIMARY KEY,"
@@ -59,10 +139,29 @@ void MDatabaseManager::createMainTables()
     if (query.next()) {
         qDebug() << query.value(0).toString();
     }
+
+    QSqlDatabase::database().commit();
+}
+
+QSqlRelationalTableModel *MDatabaseManager::getTableModel(QString &modelName)
+{
+    // TODO: Need to test this
+    return m_tableMap[modelName.toLower()];
 }
 
 int MDatabaseManager::getId(QSqlRelationalTableModel &tableModel, QString &field, QModelIndex &index)
 {
     return -1;
+}
+
+void MDatabaseManager::addStateToCharacter(const QString &label, int charID)
+{
+    query.prepare(QString("INSERT INTO states (label, character) VALUES (:label, :char_id)"));
+    if (label != "") {
+        query.bindValue(":label", label);
+    } else {
+        query.bindValue(":label", "new state");
+    }
+    query.bindValue(":char_id", charID);
 }
 

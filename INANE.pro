@@ -4,6 +4,9 @@ QT = core gui
 
 greaterThan(QT_MAJOR_VERSION, 5): QT += sql widgets
 
+VERSION = 0.1alpha
+DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
+
 SOURCES += \
     charactereditorwindow.cpp \
     main.cpp \
@@ -11,6 +14,7 @@ SOURCES += \
     mainwindow.cpp \
     mdatabasemanager.cpp \
     nexusreader.cpp \
+    nexuswriter.cpp \
     noteditabledelegate.cpp \
     stateselectordelegate.cpp \
     taxonmanager.cpp
@@ -21,6 +25,7 @@ HEADERS += \
     mainwindow.h \
     mdatabasemanager.h \
     nexusreader.h \
+    nexuswriter.h \
     noteditabledelegate.h \
     stateselectordelegate.h \
     taxonmanager.h

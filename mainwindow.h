@@ -11,6 +11,7 @@ class QListView;
 class QSqlRelationalTableModel;
 class QLineEdit;
 class MainMenu;
+class QPlainTextEdit;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -32,6 +33,7 @@ public slots:
     void openStateTableView();
     void aboutMenu();
     void addTaxon(const QString &name);
+    void writeToConsole(const QString &msg);
 
 private:
     void createMenus();
@@ -59,12 +61,15 @@ private:
     QSqlRelationalTableModel *charTable;
     QSqlRelationalTableModel *observationsTable;
     QSqlRelationalTableModel *stateTable;
+    QSqlRelationalTableModel *symbolsTable;
 
     QTableView *taxaTableView;
     QListView  *taxaList;
     QTableView *charTableView;
     QTableView *obsTableView;
     QTableView *stateTableView;
+
+    QPlainTextEdit *console;
 
     QWidget *statesWindow;
 

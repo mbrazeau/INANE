@@ -12,6 +12,7 @@
 #include <QListView>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QPlainTextEdit>
 #include <QPushButton>
 #include <QProgressDialog>
 #include <QSqlRelationalDelegate>
@@ -33,6 +34,7 @@
 #include "stateselectordelegate.h"
 #include "noteditabledelegate.h"
 #include "mdatabasemanager.h"
+#include "nexuswriter.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
@@ -88,9 +90,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     taxaTools->addWidget(addTaxon);
     taxaTools->addWidget(deleteTaxon);
     taxaTools->addWidget(taxaToolsSpacer);
-    //    mainLayout->addWidget(taxFilterLabel, 0, 0);
-    //    mainLayout->addWidget(taxaFilterField, 0, 1);
-
 
     // Observation tools
     obsFilterField = new QLineEdit(this);
@@ -104,7 +103,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     connect(addObs, &QPushButton::released, this, &MainWindow::updateObsTable);
     // END TEMP
 
-    QPushButton *clearObsFilterBtn = new QPushButton(tr("Clear filters"), this);
+    QPushButton *clearObsFilterBtn = new QPushButton(tr("Clear"), this);
     connect(clearObsFilterBtn, &QPushButton::released, this, [&](){observationsTable->setFilter("");});
 
     QWidget *obsToolsSpacer = new QWidget(obsTools);
@@ -119,11 +118,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     mainLayout->addWidget(taxaTools, 0, 0);
     mainLayout->addWidget(obsTools, 0, 1, 1, -1);
-//    mainLayout->addWidget(obsFilterLabel, 0, 2);
-//    mainLayout->addWidget(obsFilterField, 0, 3);
-//    mainLayout->addWidget(taxaTableView, 1, 0);
-//    mainLayout->addWidget(obsTableView, 1, 1, 1, -1);
-//    mainLayout->setColumnStretch(1, 2);
 
     // Put the main tables in a splitter:
     QSplitter *splitter = new QSplitter(Qt::Horizontal);
@@ -131,8 +125,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     splitter->addWidget(taxaTableView);
     splitter->addWidget(obsTableView);
     splitter->setStretchFactor(1, 2);
+    mainLayout->setRowStretch(1, 3);
+//    mainLayout->setColumnStretch(1, 2);
 
-    mainLayout->setColumnStretch(1, 2);
+    console = new QPlainTextEdit(this);
+    console->setFont(QFont("courier"));
+    console->setReadOnly(true);
+    console->resize(console->width(), 28);
+    mainLayout->addWidget(console, 2, 0, 1, -1);
+
+    writeToConsole("**** Welcome to INANE! ****");
+    writeToConsole(QString("Version %1").arg(VERSION_STRING));
 }
 
 void MainWindow::createMenus()
@@ -143,13 +146,14 @@ void MainWindow::createMenus()
 
 void MainWindow::aboutMenu()
 {
-    QString about =
+    QString about = QString(
     "INANE is Not a Nexus Editor\n\n"
-    "version 0.1 alpha\n"
+    "version %1\n"
     "written by Martin D. Brazeau."
     "\n\n"
     "This program is written using the Qt Framework and is distributed as free, open source software.\n"
-    "Nexus importing uses the Nexus Class Library by Mark Holder and Paul O. Lewis.\n\n"
+    "Despite its name, this program can still read and write Nexus files. Nexus importing uses the Nexus "
+    "Class Library by Mark Holder and Paul O. Lewis.\n\n").arg(VERSION_STRING)
     ;
 
     showMessage(about);
@@ -175,6 +179,13 @@ void MainWindow::addTaxon(const QString &name)
     if (query.next()) {
         qDebug() << query.value(0).toString();
     }
+}
+
+void MainWindow::writeToConsole(const QString &msg)
+{
+    console->moveCursor(QTextCursor::End);
+    console->insertPlainText(msg + "\n");
+    console->moveCursor(QTextCursor::End);
 }
 
 void MainWindow::showMessage(QString message)
@@ -323,6 +334,7 @@ void MainWindow::importNexus()
         query.bindValue(":label", label);
         if (!query.exec()) {
             qDebug() << "Error inserting " << label;
+            writeToConsole("Error inserting " + label);
         }
 
         if (!query.exec(QString("SELECT last_insert_rowid() FROM characters"))) {
@@ -334,16 +346,17 @@ void MainWindow::importNexus()
 //        qDebug() << "Char ID: " << charID;
         // Insert into the state table
         for (j = 0; j < nxreader.getNumStatesForChar(i); ++j) {
-
             QString stateLabel = QString(nxreader.getStateLabel(i, j).toLocal8Bit());
             if (stateLabel != " ") {
-//                qDebug() << "state label: " << stateLabel;
-                query.prepare(QString("INSERT INTO states (character, label) VALUES (:character, :label)"));
-                //            query.bindValue(":state_id", ctr);
+                query.prepare(QString("INSERT INTO states (character, label, symbol) VALUES (:character, :label, "
+                                      "(SELECT symbol_id FROM symbols WHERE symbol_id = :symbol_id)"
+                                      ")"));
                 query.bindValue(":character", charID);
                 query.bindValue(":label", stateLabel);
+                query.bindValue(":symbol_id", j + 1);
                 if (!query.exec()) {
                     qDebug() << query.lastError().text();
+                    writeToConsole(query.lastError().text());
                 }
             }
         }
@@ -395,6 +408,7 @@ void MainWindow::importNexus()
                     query.bindValue(":label", statelabel);
                     if (!query.exec()) {
                         qDebug() << query.lastError().text();
+                        writeToConsole(query.lastError().text());
                     }
                 } else {
                     query.prepare(QString("INSERT INTO observations (taxon, character, state) "
@@ -404,6 +418,7 @@ void MainWindow::importNexus()
                     query.bindValue(":label", statelabel);
                     if (!query.exec()) {
                         qDebug() << query.lastError().text();
+                        writeToConsole(query.lastError().text());
                     }
                 }
             }
@@ -435,44 +450,9 @@ void MainWindow::exportNexus()
         return; // TODO: Put in an error?
     }
 
-    nexout << QString("#NEXUS\n\n").toStdString();
+    NexusWriter::write(nexout);
 
-    QSqlQuery query;
-
-    nexout << "BEGIN TAXA;\n";
-
-    query.exec(QString("SELECT COUNT(*) FROM taxa"));
-    query.next();
-    int ntax = query.value(0).toInt();
-    nexout << QString("DIMENSIONS NTAX = %1;\nTAXLABELS\n").arg(ntax).toStdString();
-
-    query.exec(QString("SELECT name FROM taxa"));
-    while (query.next()) {
-        QString label;
-        label = query.value(0).toString();
-        nexout << NxsString::GetEscaped(label.toStdString());
-        nexout << "\n";
-    }
-
-    nexout << ";\nEND;\n\n";
-
-    nexout << "BEGIN CHARACTERS;\n";
-    query.exec(QString("SELECT COUNT(*) FROM characters"));
-    query.next();
-    int nchar = query.value(0).toInt();
-    query.exec(QString("SELECT label FROM characters"));
-    nexout << QString("DIMENSIONS NCHAR = %1;\nCHARSTATELABELS\n").arg(nchar).toStdString();
-    int ctr = 1;
-    while (query.next()) {
-        QString label;
-        label = query.value(0).toString();
-        nexout << QString(" %1 ").arg(ctr).toStdString();
-        ctr++;
-        nexout << NxsString::GetEscaped(label.toStdString());
-        nexout << "\n";
-    }
-
-    nexout << ";\nEND;\n";
+//    nexout << nexustext.toStdString();
 
     nexout.close();
 }
@@ -562,8 +542,9 @@ void MainWindow::openStateTableView()
 
     stateTableView = new QTableView(statesWindow);
     stateTableView->setModel(stateTable);
-    stateTable->setTable("states");
+//    stateTable->setTable("states");
     stateTable->select();
+//    symbolsTable->select();
     stateTable->setFilter("");
 
     statesWindow->setLayout(new QHBoxLayout(stateTableView));
@@ -643,7 +624,11 @@ void MainWindow::configMainTables()
     stateTable = new QSqlRelationalTableModel(this, QSqlDatabase::database());
     stateTable->setTable("states");
     stateTable->setEditStrategy(QSqlRelationalTableModel::OnFieldChange);
-    stateTable->setRelation(1, QSqlRelation("characters", "char_id", "label"));
+
+    symbolsTable = new QSqlRelationalTableModel(this, QSqlDatabase::database());
+    symbolsTable->setTable("symbols");
+    stateTable->setRelation(1, QSqlRelation("symbols", "symbol_id", "symbol"));
+    stateTable->setRelation(2, QSqlRelation("characters", "char_id", "label"));
 
     observationsTable = new QSqlRelationalTableModel(this, QSqlDatabase::database());
     observationsTable->setTable("observations");
@@ -664,12 +649,13 @@ void MainWindow::configMainTables()
     obsTableView->setItemDelegateForColumn(1, new NotEditableDelegate(obsTableView));
     obsTableView->setItemDelegateForColumn(2, new NotEditableDelegate(obsTableView));
 
-
     taxaTableView->setModel(taxaTable);
     obsTableView->setModel(observationsTable);
 
     taxaTable->select();
     charTable->select();
+    symbolsTable->select();
+    stateTable->select();
     observationsTable->select();
 
     // Display the tables

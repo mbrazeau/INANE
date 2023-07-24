@@ -49,3 +49,5 @@ else:unix: PRE_TARGETDEPS += $$PWD/external/ncl/build/ncl/libncl.a
 
 RESOURCES += \
     inane.qrc
+
+ICON = icons/INANE.icns

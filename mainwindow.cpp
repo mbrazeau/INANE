@@ -63,7 +63,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     // Add the relevant tables
     taxaTableView = new QTableView(this);
-    taxaTableView->setModel(taxaTable);
     taxaTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     taxaTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
     taxaTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -241,7 +240,6 @@ void MainWindow::dbOpen()
 void MainWindow::dbClose()
 {
     QString connection = QSqlDatabase::database().databaseName();
-
     QSqlDatabase::database().close();
     QSqlDatabase::removeDatabase(connection);
 
@@ -696,6 +694,11 @@ void MainWindow::getNewTaxon()
 {
     bool ok;
 
+    if (!QSqlDatabase::database().defaultConnection) {
+        writeToConsole("No database open");
+        return;
+    }
+
     QString taxonName = QInputDialog::getText(nullptr,
                                               tr("New taxon"),
                                               tr("Input a new taxon name"),
@@ -705,6 +708,8 @@ void MainWindow::getNewTaxon()
 
     if (ok && !taxonName.isEmpty()) {
         addTaxon(taxonName);
+    } else {
+        return;
     }
 
     taxaTable->select();

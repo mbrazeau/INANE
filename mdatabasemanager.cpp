@@ -2,7 +2,8 @@
 
 const char stateSymbols[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-?";
 
-MDatabaseManager::MDatabaseManager()
+MDatabaseManager::MDatabaseManager() :
+    m_hasDatabase(false)
 {
     // First check that a valid database is active
     // TODO: do the above
@@ -54,7 +55,17 @@ MDatabaseManager::MDatabaseManager()
 
 MDatabaseManager::~MDatabaseManager()
 {
+    QString connection = QSqlDatabase::database().databaseName();
+    QSqlDatabase::database().close();
+    QSqlDatabase::removeDatabase(connection);
 
+    delete m_taxaTable;
+    delete m_groupsTable;
+    delete m_discreteCharsTable;
+    delete m_discreteStatesTable;
+    delete m_symbolsTable;
+    delete m_subcharsTable;
+    delete m_observationsTable;
 }
 
 void MDatabaseManager::createMainTables()
@@ -163,5 +174,15 @@ void MDatabaseManager::addStateToCharacter(const QString &label, int charID)
         query.bindValue(":label", "new state");
     }
     query.bindValue(":char_id", charID);
+}
+
+bool MDatabaseManager::hasDatabase()
+{
+    return m_hasDatabase;
+}
+
+bool MDatabaseManager::openDatabase(QString &dbname)
+{
+
 }
 

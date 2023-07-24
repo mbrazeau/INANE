@@ -15,8 +15,13 @@ public:
     QSqlRelationalTableModel *getTableModel(QString &modelName);
     int                       getId(QSqlRelationalTableModel &tableModel, QString &field, QModelIndex &index);
     void addStateToCharacter(const QString &label, int charID);
+    bool hasDatabase();
+    void createNewDatabase();
+    bool openDatabase(QString &dbname);
 
 private:
+
+    bool m_hasDatabase;
 
     QSqlRelationalTableModel *m_taxaTable;
     QSqlRelationalTableModel *m_groupsTable;
@@ -25,8 +30,6 @@ private:
     QSqlRelationalTableModel *m_symbolsTable;
     QSqlRelationalTableModel *m_subcharsTable;
     QSqlRelationalTableModel *m_observationsTable;
-
-
 
     QSqlQuery query;
     QMap<QString, QSqlRelationalTableModel *> m_tableMap;

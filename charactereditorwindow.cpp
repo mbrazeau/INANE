@@ -44,14 +44,6 @@ CharacterEditorWindow::CharacterEditorWindow(const int row, QWidget *parent) : Q
     charTableView->setSelectionMode(QAbstractItemView::SingleSelection);
     charTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
-//    charTableView->verticalHeader()->setSectionsMovable(true);
-//    charTableView->setDragEnabled(true);
-//    charTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
-//    charTableView->setSelectionMode(QAbstractItemView::SingleSelection);
-//    charTableView->setDragDropMode(QAbstractItemView::InternalMove);
-//    charTableView->setDropIndicatorShown(true);
-//    charTableView->setDragDropOverwriteMode(false);
-
     charTable_p = nullptr;
 
     setCharTable();

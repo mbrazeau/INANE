@@ -12,6 +12,9 @@ class QSqlRelationalTableModel;
 class QLineEdit;
 class MainMenu;
 class QPlainTextEdit;
+
+class MDatabaseManager;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -45,6 +48,8 @@ private:
     void getNewTaxon();
     void updateObsTable();
 
+    MDatabaseManager *dbManager;
+
     QString taxonFilter;
 
     QLineEdit *obsFilterField;
@@ -53,8 +58,6 @@ private:
     QMenu *editMenu;
     QMenu *taxaMenu;
     QMenu *charsMenu;
-
-//    QSqlDatabase db;
 
     QSqlRelationalTableModel *taxaTable;
     QSqlRelationalTableModel *groupsTable;

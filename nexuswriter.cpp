@@ -13,7 +13,7 @@ void NexusWriter::write(std::ofstream &nexout)
     QStringList taxaLabels;
     QVector<int> taxaIDs;
     QVector<int> charIDs;
-//    QString nexout;
+
     nexout << "#NEXUS\n\n";
 
     QSqlQuery query;

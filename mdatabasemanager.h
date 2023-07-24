@@ -16,7 +16,6 @@ public:
     int                       getId(QSqlRelationalTableModel &tableModel, QString &field, QModelIndex &index);
     void addStateToCharacter(const QString &label, int charID);
     bool hasDatabase();
-    void createNewDatabase();
     bool openDatabase(QString &dbname);
 
 private:

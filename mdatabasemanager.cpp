@@ -183,6 +183,6 @@ bool MDatabaseManager::hasDatabase()
 
 bool MDatabaseManager::openDatabase(QString &dbname)
 {
-
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
 }
 

@@ -95,7 +95,7 @@ void CharacterEditorWindow::initEditorArea(const int row)
 
     mapper = new QDataWidgetMapper(this);
     mapper->setModel(charTable_p);
-    mapper->setSubmitPolicy(QDataWidgetMapper::AutoSubmit);
+    mapper->setSubmitPolicy(QDataWidgetMapper::ManualSubmit);
     mapper->setItemDelegate(new QSqlRelationalDelegate(this));
     mapper->addMapping(labelField, charTable_p->fieldIndex("label"));
     mapper->addMapping(sourceField, charTable_p->fieldIndex("source"));
@@ -106,6 +106,7 @@ void CharacterEditorWindow::initEditorArea(const int row)
     statesTable->setColumnHidden(0, true);
     statesTable->setColumnHidden(2, true);
     statesTable->horizontalHeader()->setStretchLastSection(true);
+//    statesTable_p->setEditStrategy(QSqlRelationalTableModel::OnManualSubmit);
     statesTable_p->select();
 
     // TODO: Clean this crap.
@@ -219,8 +220,8 @@ void CharacterEditorWindow::newCharacterAction()
     query.exec("SELECT last_insert_rowid()");
     query.next();
     newID = query.value(0).toInt();
-    query.exec(QString("INSERT INTO states (character, label) VALUES (%1, 'state_1')").arg(newID));
-    query.exec(QString("INSERT INTO states (character, label) VALUES (%1, 'state_2')").arg(newID));
+    query.exec(QString("INSERT INTO states (symbol, character, label) VALUES (1, %1, 'state_1')").arg(newID));
+    query.exec(QString("INSERT INTO states (symbol, character, label) VALUES (2, %1, 'state_2')").arg(newID));
 //    statesTable_p->select();
 
     statesTable_p->setFilter(QString("character = %1").arg(newID)); //Re-enable filter on new characters
@@ -290,6 +291,8 @@ void CharacterEditorWindow::commitCharChange()
         newChar->setEnabled(true);
         deleteChar->setEnabled(true);
 
+        statesTable_p->submitAll();
+
         charTable_p->select();
         statesTable_p->select();
     }
@@ -302,18 +305,39 @@ void CharacterEditorWindow::newStateAction()
     index = charTableView->currentIndex();
     QSqlQueryModel *m = qobject_cast<QSqlQueryModel *>(charTableView->model());
     QSqlRecord rec = m->record(index.row());
-    int rowid = rec.field("char_id").value().toInt();
+    int rowid = rec.field("characters.char_id").value().toInt();
     // END TODO.
 
     QSqlQuery query;
     int charID;
     if (!query.exec(QString("SELECT char_id FROM characters WHERE rowid = %1").arg(rowid))) {
-        qDebug() << query.lastError().text();
+        qDebug() << "Cannot select char id: " << charID << ". " << query.lastError().text();
     }
     query.next();
     charID = query.value(0).toInt();
 
-    query.prepare(QString("INSERT INTO states (label, character) VALUES ('new state', :char_id)"));
+    int symbolID;
+    int symbolRank;
+    // Get a symbol not already in use; reject the request and throw an error if state limit exceeded.
+    if(!query.exec(QString("SELECT symbol_id, rank FROM symbols "
+                            "WHERE symbol_id NOT IN (SELECT symbol FROM states WHERE character = %1) "
+                            " AND symbol != '?' AND symbol != '-' "
+                            " ORDER BY symbol_id ASC").arg(charID))) {
+
+        QMessageBox checkDelete;
+        checkDelete.setIcon(QMessageBox::Information);
+        checkDelete.setText("Cannot create new state");
+        checkDelete.setInformativeText("This is likely because you have reached the limit of states for this character");
+        return;
+    }
+
+    query.next();
+    symbolID = query.value(0).toInt();
+    symbolRank = query.value(1).toInt();
+
+    query.prepare(QString("INSERT INTO states (symbol, label, character) VALUES (:symbol, :label, :char_id)"));
+    query.bindValue(":symbol", symbolID);
+    query.bindValue(":label", QString("new_state_%1").arg(symbolRank));
     query.bindValue(":char_id", charID);
     if (!query.exec()) {
         qDebug() << query.lastError().text();

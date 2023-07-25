@@ -42,7 +42,7 @@ void NexusWriter::write(std::ofstream &nexout)
     query.exec(QString("SELECT COUNT(*) FROM characters")); // TODO: Condition this on included characters
     query.next();
     int nchar = query.value(0).toInt();
-    query.exec(QString("SELECT char_id, label FROM characters"));
+    query.exec(QString("SELECT char_id, charlabel FROM characters"));
     nexout << QString("DIMENSIONS NCHAR = %1;\nCHARLABELS\n").arg(nchar).toStdString();
     int ctr = 1;
 

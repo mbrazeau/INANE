@@ -294,7 +294,7 @@ void MainWindow::importNexus()
     QByteArray hashresult;
 
     unsigned int i, j, k;
-    
+
     // Process the taxa and insert them to the taxa table
     QProgressDialog progress("Importing taxa...", "Abort", 0, nxreader.getNtax(), this);
     progress.setWindowModality(Qt::WindowModal);
@@ -327,7 +327,7 @@ void MainWindow::importNexus()
         hashresult = charUUID.result();
         charUUID.reset();
         QString shortHash = QString(hashresult.toHex().remove(0, 2 * hashresult.size() - 7));
-        query.prepare(QString("INSERT INTO characters (char_GUUID, label) VALUES (:char_id, :label)"));
+        query.prepare(QString("INSERT INTO characters (char_GUUID, charlabel) VALUES (:char_id, :label)"));
         query.bindValue(":char_id", shortHash);
         query.bindValue(":label", label);
         if (!query.exec()) {
@@ -346,7 +346,7 @@ void MainWindow::importNexus()
         for (j = 0; j < nxreader.getNumStatesForChar(i); ++j) {
             QString stateLabel = QString(nxreader.getStateLabel(i, j).toLocal8Bit());
             if (stateLabel != " ") {
-                query.prepare(QString("INSERT INTO states (character, label, symbol) VALUES (:character, :label, "
+                query.prepare(QString("INSERT INTO states (character, statelabel, symbol) VALUES (:character, :label, "
                                       "(SELECT symbol_id FROM symbols WHERE symbol_id = :symbol_id)"
                                       ")"));
                 query.bindValue(":character", charID);
@@ -400,7 +400,7 @@ void MainWindow::importNexus()
 //                qDebug() << "state: " << statelabel;
                 if ((statelabel != QString("missing")) && (statelabel != QString("inapplicable"))) {
                     query.prepare(QString("INSERT INTO observations (taxon, character, state) "
-                                          "VALUES (:taxon, :character, (SELECT state_id FROM states WHERE character = :character AND label = :label))"));
+                                          "VALUES (:taxon, :character, (SELECT state_id FROM states WHERE character = :character AND statelabel = :label))"));
                     query.bindValue(":taxon", taxID);
                     query.bindValue(":character", charID);
                     query.bindValue(":label", statelabel);
@@ -410,7 +410,7 @@ void MainWindow::importNexus()
                     }
                 } else {
                     query.prepare(QString("INSERT INTO observations (taxon, character, state) "
-                                          "VALUES (:taxon, :character, (SELECT state_id FROM states WHERE label = :label))"));
+                                          "VALUES (:taxon, :character, (SELECT state_id FROM states WHERE statelabel = :label))"));
                     query.bindValue(":taxon", taxID);
                     query.bindValue(":character", charID);
                     query.bindValue(":label", statelabel);
@@ -490,7 +490,7 @@ void MainWindow::onObsFilterEdited(const QString &string)
     }
 
     QSqlQuery query;
-    query.prepare(QString("SELECT char_id FROM characters WHERE label LIKE :label "));
+    query.prepare(QString("SELECT char_id FROM characters WHERE charlabel LIKE :label "));
     query.bindValue(":label", QString("%%1%").arg(string));
     query.exec();
     query.next();
@@ -626,15 +626,15 @@ void MainWindow::configMainTables()
     symbolsTable = new QSqlRelationalTableModel(this, QSqlDatabase::database());
     symbolsTable->setTable("symbols");
     stateTable->setRelation(1, QSqlRelation("symbols", "symbol_id", "symbol"));
-    stateTable->setRelation(2, QSqlRelation("characters", "char_id", "label"));
+    stateTable->setRelation(2, QSqlRelation("characters", "char_id", "charlabel"));
 
     observationsTable = new QSqlRelationalTableModel(this, QSqlDatabase::database());
     observationsTable->setTable("observations");
     observationsTable->setEditStrategy(QSqlRelationalTableModel::OnFieldChange);
 
     observationsTable->setRelation(1, QSqlRelation("taxa", "taxon_id", "name"));
-    observationsTable->setRelation(2, QSqlRelation("characters", "char_id", "label"));
-    observationsTable->setRelation(3, QSqlRelation("states", "state_id", "label"));
+    observationsTable->setRelation(2, QSqlRelation("characters", "char_id", "charlabel"));
+    observationsTable->setRelation(3, QSqlRelation("states", "state_id", "statelabel"));
 
     observationsTable->setHeaderData(0, Qt::Horizontal, tr("ID"));
     observationsTable->setHeaderData(1, Qt::Horizontal, tr("Taxon"));
@@ -722,7 +722,7 @@ void MainWindow::updateObsTable()
 
     query.prepare("INSERT INTO observations (taxon, character, state)"
                   " SELECT taxa.taxon_id, characters.char_id, states.state_id "
-                  " FROM taxa CROSS JOIN characters CROSS JOIN states WHERE states.label = 'missing'");
+                  " FROM taxa CROSS JOIN characters CROSS JOIN states WHERE states.statelabel = 'missing'");
 
     if (!query.exec()) {
         qDebug() << query.lastError().text();

@@ -70,7 +70,7 @@ void CharacterEditorWindow::setCharTable()
     statesTable_p = new QSqlRelationalTableModel(this, QSqlDatabase::database());
     statesTable_p->setTable("states");
     statesTable_p->setRelation(1, QSqlRelation("symbols", "symbol_id", "symbol"));
-    statesTable_p->setRelation(2, QSqlRelation("characters", "char_id", "label"));
+    statesTable_p->setRelation(2, QSqlRelation("characters", "char_id", "charlabel"));
     statesTable_p->select();
 }
 
@@ -97,7 +97,7 @@ void CharacterEditorWindow::initEditorArea(const int row)
     mapper->setModel(charTable_p);
     mapper->setSubmitPolicy(QDataWidgetMapper::ManualSubmit);
     mapper->setItemDelegate(new QSqlRelationalDelegate(this));
-    mapper->addMapping(labelField, charTable_p->fieldIndex("label"));
+    mapper->addMapping(labelField, charTable_p->fieldIndex("charlabel"));
     mapper->addMapping(sourceField, charTable_p->fieldIndex("source"));
     mapper->addMapping(descripField, charTable_p->fieldIndex("notes"));
 
@@ -207,7 +207,7 @@ void CharacterEditorWindow::newCharacterAction()
     statesTable_p->setFilter(""); // Temporarily disable filter
 
     QSqlQuery query;
-    if(!query.exec("INSERT INTO characters (label) VALUES ('new character')")) {
+    if(!query.exec("INSERT INTO characters (charlabel) VALUES ('new character')")) {
         qDebug() << "Failed to create new character!";
     }
 
@@ -220,8 +220,8 @@ void CharacterEditorWindow::newCharacterAction()
     query.exec("SELECT last_insert_rowid()");
     query.next();
     newID = query.value(0).toInt();
-    query.exec(QString("INSERT INTO states (symbol, character, label) VALUES (1, %1, 'state_1')").arg(newID));
-    query.exec(QString("INSERT INTO states (symbol, character, label) VALUES (2, %1, 'state_2')").arg(newID));
+    query.exec(QString("INSERT INTO states (symbol, character, statelabel) VALUES (1, %1, 'state_1')").arg(newID));
+    query.exec(QString("INSERT INTO states (symbol, character, statelabel) VALUES (2, %1, 'state_2')").arg(newID));
 //    statesTable_p->select();
 
     statesTable_p->setFilter(QString("character = %1").arg(newID)); //Re-enable filter on new characters
@@ -257,13 +257,13 @@ void CharacterEditorWindow::commitCharChange()
         // roundabout way...
         QSqlRecord last = charTable_p->record(row);
 
-        qDebug() << last.value(QString("label")).toString();
+        qDebug() << last.value(QString("charlabel")).toString();
         charID = last.value(QString("char_id")).toInt();
-        charUUID.addData( last.value(QString("label")).toString().toLocal8Bit() );
+        charUUID.addData( last.value(QString("charlabel")).toString().toLocal8Bit() );
 
         QSqlDatabase::database().transaction();
         // Select and loop over the states as defined:
-        query.exec(QString("SELECT label FROM states WHERE character = %1").arg(charID));
+        query.exec(QString("SELECT statelabel FROM states WHERE character = %1").arg(charID));
         while (query.next()) {
             charUUID.addData(query.value(0).toString().toLocal8Bit());
         }
@@ -335,7 +335,7 @@ void CharacterEditorWindow::newStateAction()
     symbolID = query.value(0).toInt();
     symbolRank = query.value(1).toInt();
 
-    query.prepare(QString("INSERT INTO states (symbol, label, character) VALUES (:symbol, :label, :char_id)"));
+    query.prepare(QString("INSERT INTO states (symbol, statelabel, character) VALUES (:symbol, :label, :char_id)"));
     query.bindValue(":symbol", symbolID);
     query.bindValue(":label", QString("new_state_%1").arg(symbolRank));
     query.bindValue(":char_id", charID);
@@ -367,7 +367,7 @@ void CharacterEditorWindow::deleteStateAction()
 
     // First, replace all instances of this character in the observations table with missing
     query.prepare("UPDATE observations "
-                  "SET state = (SELECT state_id FROM states WHERE label = 'missing' ) "
+                  "SET state = (SELECT state_id FROM states WHERE statelabel = 'missing' ) "
                   "WHERE state = :state_id");
     query.bindValue(":char_id", charID);
     query.bindValue(":state_id", stateID);

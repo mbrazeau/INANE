@@ -18,6 +18,8 @@ public:
     bool hasDatabase();
     bool openDatabase(QString &dbname);
 
+    void addObservation(const int taxID, const int charID, const int stateID);
+
 private:
 
     bool m_hasDatabase;

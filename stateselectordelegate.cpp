@@ -27,7 +27,7 @@ QWidget *StateSelectorDelegate::createEditor(QWidget *parent, const QStyleOption
 
     QSqlRecord rec = sqlModel->record(index.row());
 
-    childModel->setFilter(QString("character = %1 OR character IS NULL").arg(rec.field("id").value().toInt()));
+    childModel->setFilter( QString("character = %1 OR character IS NULL").arg(rec.field("charlabel").value().toInt()) );
     QComboBox *editor = new QComboBox(parent);
     editor->setModel(childModel);
     editor->setModelColumn(childModel->fieldIndex(sqlModel->relation(index.column()).displayColumn()));

@@ -32,7 +32,6 @@ QWidget *StateSelectorDelegate::createEditor(QWidget *parent, const QStyleOption
     editor->setModel(childModel);
     editor->setModelColumn(childModel->fieldIndex(sqlModel->relation(index.column()).displayColumn()));
     editor->installEventFilter(const_cast<StateSelectorDelegate *>(this));
-//    editor->setFrame(false);
     return editor;
 }
 
@@ -107,5 +106,5 @@ bool StateSelectorDelegate::eventFilter(QObject *watched, QEvent *event)
         return true;
     }
 
-    QItemDelegate::eventFilter(watched, event);
+    return QItemDelegate::eventFilter(watched, event);
 }

@@ -26,8 +26,13 @@ QWidget *StateSelectorDelegate::createEditor(QWidget *parent, const QStyleOption
         return QItemDelegate::createEditor(parent, option, index);
 
     QSqlRecord rec = sqlModel->record(index.row());
+    QSqlQueryModel qmodel;
 
-    childModel->setFilter( QString("character = %1 OR character IS NULL").arg(rec.field("charlabel").value().toInt()) );
+    qmodel.setQuery(QString("SELECT * FROM observations WHERE rowid = %1").arg(rec.field("id").value().toInt()));
+
+    int charID = qmodel.record(0).value("character").toInt();
+
+    childModel->setFilter( QString("character = %1 OR character IS NULL").arg(charID) );
     QComboBox *editor = new QComboBox(parent);
     editor->setModel(childModel);
     editor->setModelColumn(childModel->fieldIndex(sqlModel->relation(index.column()).displayColumn()));

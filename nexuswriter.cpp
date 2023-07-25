@@ -60,7 +60,19 @@ void NexusWriter::write(std::ofstream &nexout)
 
     nexout << ";\n";
 
-    QString symbols = "0 1 2 3 4 5 6 7 8 9"; // TODO: This is temporary
+    // Generate the Nexus symbols expression based on actual symbols used in the dataset
+    if(!query.exec("SELECT symbols.symbol "
+                    "FROM symbols "
+                    "WHERE symbol_id IN (SELECT DISTINCT states.symbol FROM states) "
+                    "AND symbols.symbol != '?' AND symbols.symbol != '-'")) {
+        qDebug() << query.lastError().text();
+    }
+
+    QString symbols;
+    while (query.next()) {
+        symbols += query.value(0).toString();
+        symbols += " ";
+    }
 
     nexout << QString("FORMAT DATATYPE=STANDARD GAP=- MISSING=? SYMBOLS=\"%1\";\n").arg(symbols).toStdString();
 

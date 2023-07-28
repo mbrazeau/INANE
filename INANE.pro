@@ -21,6 +21,7 @@ SOURCES += \
     nexuswriter.cpp \
     noteditabledelegate.cpp \
     stateselectordelegate.cpp \
+    taxaeditorwindow.cpp \
     taxonmanager.cpp
 
 HEADERS += \
@@ -32,6 +33,7 @@ HEADERS += \
     nexuswriter.h \
     noteditabledelegate.h \
     stateselectordelegate.h \
+    taxaeditorwindow.h \
     taxonmanager.h
 
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 13.0
@@ -54,4 +56,6 @@ else:unix: PRE_TARGETDEPS += $$PWD/external/ncl/build/ncl/libncl.a
 RESOURCES += \
     inane.qrc
 
-ICON = icons/INANE.icns
+macx: {
+    ICON = icons/INANE.icns
+}

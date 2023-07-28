@@ -216,21 +216,6 @@ bool MDatabaseManager::openDatabase(QString &dbname)
 void MDatabaseManager::addObservation(const int taxID, const int charID, const int stateID)
 {
     QSqlQuery query;
-    // First, check there isn't an empty observation for that character and taxon already
-    // PROBABLY NOT NECESSARY: ENFORCE UNIQUE CONSTRAINT ON TABLE
-//    query.exec("SELECT state_id FROM states WHERE");
-
-//    query.prepare("SELECT state FROM observations "
-//                  "WHERE state = (SELECT state_id FROM states WHERE statelabel = 'missing') "
-//                  " AND taxon = :taxID "
-//                  " AND character = :charID");
-//    query.bindValue(":taxID", taxID);
-//    query.bindValue(":charID", charID);
-//    query.exec();
-//    if (query.size() > 0) {
-//        return;
-//        qDebug() << "Query ignored. This character and taxon combination already has a missing entry";
-//    }
 
     query.prepare("INSERT INTO observations (taxon, character, state) "
                   "VALUES (:taxID, :charID, :stateID)");

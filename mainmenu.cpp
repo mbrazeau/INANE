@@ -67,13 +67,28 @@ MainMenu::MainMenu(MainWindow *parent) : QMenuBar(parent)
     dataMenuActions.push_back(m_charsEdit);
     connect(m_charsEdit, &QAction::triggered, parent, &MainWindow::openCharTableView);
 
-    // TEMPORARY
+#ifdef QT_DEBUG
+    // This is a hidden menu item for the debug build in case we need to look at the inventory of states.
     QAction *m_statesEdit = new QAction(tr("Edit states..."), this);
     m_charsMenu->addAction(m_statesEdit);
     dataMenuActions.push_back(m_statesEdit);
     connect(m_statesEdit, &QAction::triggered, parent, &MainWindow::openStateTableView);
-//    openStateTableView
-    // END TEMP
+#endif
+
+    //  Project menu
+    m_projectMenu = addMenu(tr("&Project"));
+
+    m_projNew = new QAction(tr("&New project..."));
+    m_projectMenu->addAction(m_projNew);
+    dataMenuActions.push_back(m_projNew);
+
+    m_projGenGUUIDs = new QAction(tr("&Generate unique IDs"));
+    m_projectMenu->addAction(m_projGenGUUIDs);
+    dataMenuActions.push_back(m_projGenGUUIDs);
+
+    m_projPublish = new QAction(tr("&Publication report..."));
+    m_projectMenu->addAction(m_projPublish);
+    dataMenuActions.push_back(m_projPublish);
 
     // Help
     m_helpMenu = addMenu(tr("&Help"));
@@ -83,6 +98,12 @@ MainMenu::MainMenu(MainWindow *parent) : QMenuBar(parent)
     connect(m_about, &QAction::triggered, parent, &MainWindow::aboutMenu);
 }
 
+/*!
+  \fn void MainMenu::setDataMenusEnabled(bool enable)
+
+  Enables menus requiring an existing database connection.
+
+*/
 void MainMenu::setDataMenusEnabled(bool enable)
 {
     QListIterator<QAction *> it(dataMenuActions);

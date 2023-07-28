@@ -40,6 +40,12 @@ private:
     QMenu *m_charsMenu;
     QAction *m_charsEdit;
 
+    // Project menu
+    QMenu *m_projectMenu;
+    QAction *m_projNew;
+    QAction *m_projGenGUUIDs;
+    QAction *m_projPublish;
+
     // Help
     QMenu *m_helpMenu;
 

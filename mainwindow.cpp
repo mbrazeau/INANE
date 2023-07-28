@@ -42,8 +42,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     // Initialize variables.
     taxonFilter = "";
 
-    // Initialise the database
-//    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+    dbManager = new MDatabaseManager;
 
     // Initialise main window dimensions so it doesn't look stupid when it first opens up
     QRect rec;
@@ -56,33 +55,35 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     createMenus();
 
     // Do the basic interface display setup with table views.
-    QWidget *myCentralWidget = new QWidget(this);
-    setCentralWidget(myCentralWidget);
+    QWidget *mwCentralWidget = new QWidget(this);
+    setCentralWidget(mwCentralWidget);
 
-    QGridLayout *mainLayout = new QGridLayout(myCentralWidget);
-    myCentralWidget->setLayout(mainLayout);
+    QGridLayout *mainLayout = new QGridLayout(mwCentralWidget);
+    mwCentralWidget->setLayout(mainLayout);
 
-    // Add the relevant tables
+    // Add the relevant table view widgets
+
+    // Taxon table views
     taxaTableView = new QTableView(this);
     taxaTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     taxaTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
     taxaTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-
-    obsTableView = new QTableView(this);
-    obsTableView->setEditTriggers(QAbstractItemView::AllEditTriggers);
-    obsTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
-
-//    QLineEdit *taxaFilterField = new QLineEdit(this);
-//    QLabel *taxFilterLabel = new QLabel(this);
-//    taxFilterLabel->setText(tr("Filter taxa:"));
     QToolBar *taxaTools = new QToolBar(tr("Taxa"), this);
     taxaTools->setWindowTitle(tr("Taxa"));
     QToolBar *obsTools = new QToolBar(tr("Observations"), this);
 
+
+    // Observation table views
+    obsTableView = new QTableView(this);
+    obsTableView->setEditTriggers(QAbstractItemView::AllEditTriggers);
+    obsTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+
+
+    // Set up the main tool bar
+
     // Taxa tools
     QPushButton *addTaxon = new QPushButton(tr("New taxon"), this);
     QPushButton *deleteTaxon = new QPushButton(tr("Delete taxon"), this);
-//    mainLayout->addWidget(addTaxon, 2, 0);
     connect(addTaxon, &QPushButton::released, this, &MainWindow::getNewTaxon);
 
     QWidget *taxaToolsSpacer = new QWidget(taxaTools);
@@ -99,10 +100,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     QPushButton *addObs = new QPushButton(tr("New observation"), this);
     addObs->setToolTip(tr("Use this to add additional observations for a character and taxon (e.g. to create a polymorphism)"));
-    //    mainLayout->addWidget(addObs, 2, 3);
-    // TEMPORARY!!!
     connect(addObs, &QPushButton::released, this, &MainWindow::insertObservation);
-    // END TEMP
 
     QPushButton *clearObsFilterBtn = new QPushButton(tr("Clear"), this);
     clearObsFilterBtn->setToolTip(tr("Clear all active filters"));
@@ -128,8 +126,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     splitter->addWidget(obsTableView);
     splitter->setStretchFactor(1, 2);
     mainLayout->setRowStretch(1, 3);
-//    mainLayout->setColumnStretch(1, 2);
 
+    // Add a console at the bottom of the screen to display some internal messages to the user
+    // NOTE: this might get removed in later versions or be displayed in a separate window as in some other programs.
     console = new QPlainTextEdit(this);
     console->setFont(QFont("courier"));
     console->setReadOnly(true);
@@ -212,10 +211,7 @@ void MainWindow::dbNew()
     }
 
     // Initiate database
-    QSqlDatabase::database().setDatabaseName(path);
-    if (!QSqlDatabase::database().open()) {
-        qDebug() << "No database!";
-    }
+
 
     createMainTables();
     configMainTables();

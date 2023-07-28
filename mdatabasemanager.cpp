@@ -191,6 +191,21 @@ bool MDatabaseManager::hasDatabase()
 bool MDatabaseManager::openDatabase(QString &dbname)
 {
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+
+    if (QSqlDatabase::database().connectionName() != "") {
+        qDebug() << "A connection \"" << QSqlDatabase::database().connectionName() << "\" already exists!";
+        return false;
+    }
+
+    db.setDatabaseName(dbname);
+    if (!db.open()) {
+        qDebug() << "No database!";
+        return false;
+    }
+
+    dbName = dbname;
+
+    return true;
 }
 
 void MDatabaseManager::addObservation(const int taxID, const int charID, const int stateID)

@@ -142,7 +142,7 @@ void MDatabaseManager::createMainTables()
                "character INTEGER,"
                "state     INTEGER,"
                "notes     MEDIUMTEXT,"
-//               "UNIQUE (taxon, character, state),"
+               "UNIQUE (taxon, character, state),"
                "FOREIGN KEY (taxon) REFERENCES taxa (taxon_id) ON UPDATE CASCADE,"
                "FOREIGN KEY (state) REFERENCES states (state_id) ON UPDATE CASCADE,"
                "FOREIGN KEY (character) REFERENCES characters (char_id) ON UPDATE CASCADE)");
@@ -154,10 +154,17 @@ void MDatabaseManager::createMainTables()
     QSqlDatabase::database().commit();
 }
 
-QSqlRelationalTableModel *MDatabaseManager::getTableModel(QString &modelName)
+QSqlRelationalTableModel *MDatabaseManager::getTableModel(const QString &modelName)
 {
     // TODO: Need to test this
+
     return m_tableMap[modelName.toLower()];
+}
+
+const QSqlRelationalTableModel *MDatabaseManager::getTableModel(const QModelIndex &index)
+{
+    const QSqlRelationalTableModel *sqlModel = qobject_cast<const QSqlRelationalTableModel *>(index.model());
+    return sqlModel;
 }
 
 int MDatabaseManager::getId(QSqlRelationalTableModel &tableModel, QString &field, QModelIndex &index)
@@ -188,6 +195,7 @@ bool MDatabaseManager::openDatabase(QString &dbname)
 
 void MDatabaseManager::addObservation(const int taxID, const int charID, const int stateID)
 {
+    QSqlQuery query;
     // First, check there isn't an empty observation for that character and taxon already
     // PROBABLY NOT NECESSARY: ENFORCE UNIQUE CONSTRAINT ON TABLE
 //    query.exec("SELECT state_id FROM states WHERE");
@@ -209,7 +217,8 @@ void MDatabaseManager::addObservation(const int taxID, const int charID, const i
     query.bindValue(":taxID", taxID);
     query.bindValue(":charID", charID);
     query.bindValue(":stateID", stateID);
-    query.exec();
-
+    if(!query.exec()) {
+        qDebug() << query.lastError().text();
+    }
 }
 

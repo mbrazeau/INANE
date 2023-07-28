@@ -32,11 +32,13 @@ public slots:
     void dbSave();
     void importNexus();
     void exportNexus();
+    void openTaxaTableView();
     void openCharTableView();
     void openStateTableView();
     void aboutMenu();
     void addTaxon(const QString &name);
     void writeToConsole(const QString &msg);
+    void updateObsTable();
 
 private:
     void createMenus();
@@ -46,7 +48,8 @@ private:
     void configMainTables();
     void resetMainTables();
     void getNewTaxon();
-    void updateObsTable();
+    void insertObservation();
+    void clearFilters();
 
     MDatabaseManager *dbManager;
 

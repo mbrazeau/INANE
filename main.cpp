@@ -6,9 +6,12 @@
 int main(int argc, char **argv)
 {
     QApplication    Inane(argc, argv);
-    Inane.setStyle(QStyleFactory::create("Fusion"));
-    MainWindow      mw;
 
+    /* Fusion style is platform-agnostic and eliminates some display
+     * issues that occur on a Mac.*/
+    Inane.setStyle(QStyleFactory::create("Fusion"));
+
+    MainWindow mw;
     mw.show();
 
     return Inane.exec();

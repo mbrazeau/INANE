@@ -23,6 +23,7 @@
 
 #include "charactereditorwindow.h"
 #include "mainwindow.h"
+#include "noteditabledelegate.h"
 
 CharacterEditorWindow::CharacterEditorWindow(const int row, QWidget *parent) : QWidget(parent)
 {
@@ -49,6 +50,9 @@ CharacterEditorWindow::CharacterEditorWindow(const int row, QWidget *parent) : Q
     setCharTable();
 
     initEditorArea(row);
+
+    charTableView->resizeColumnsToContents();
+    charTableView->horizontalHeader()->setStretchLastSection(true);
 }
 
 void CharacterEditorWindow::setCharTable()
@@ -58,12 +62,12 @@ void CharacterEditorWindow::setCharTable()
     charTable_p->setTable("characters");
     charTableView->setModel(charTable_p);
     charTable_p->select();
-    charTableView->resizeColumnsToContents();
 
     charTableView->setColumnHidden(0, true);
     charTableView->setColumnHidden(1, true);
     charTableView->setColumnHidden(3, true);
     charTableView->setColumnHidden(4, true);
+    charTableView->setColumnHidden(charTable_p->fieldIndex("notes"), true);
 
     charTableView->selectRow(0);
 
@@ -106,12 +110,12 @@ void CharacterEditorWindow::initEditorArea(const int row)
     statesTable->setColumnHidden(0, true);
     statesTable->setColumnHidden(2, true);
     statesTable->horizontalHeader()->setStretchLastSection(true);
-//    statesTable_p->setEditStrategy(QSqlRelationalTableModel::OnManualSubmit);
+    statesTable->resizeColumnsToContents();
+    statesTable->setItemDelegateForColumn(statesTable_p->fieldIndex("symbol"), new NotEditableDelegate(this));
     statesTable_p->select();
 
     // TODO: Clean this crap.
     if (row > 0) {
-        qDebug() << "Index: " << row;
         mapper->setCurrentIndex(row-1);
         charTableView->selectRow(row-1);
         onCharacterClicked(charTableView->currentIndex());
@@ -163,8 +167,6 @@ void CharacterEditorWindow::initEditorArea(const int row)
     // Create state button connections
     connect(newState, &QToolButton::released, this, &CharacterEditorWindow::newStateAction);
     connect(deleteState, &QToolButton::released, this, &CharacterEditorWindow::deleteStateAction);
-
-    qDebug() << moveStateDn->size().height();
 }
 
 void CharacterEditorWindow::deleteCharAction()
@@ -202,7 +204,6 @@ void CharacterEditorWindow::newCharacterAction()
 {
     mapper->toLast();
     int row = mapper->currentIndex();
-    qDebug() << "Row: " << row;
 
     statesTable_p->setFilter(""); // Temporarily disable filter
 
@@ -212,6 +213,7 @@ void CharacterEditorWindow::newCharacterAction()
     }
 
     charTable_p->select();
+    charTableView->resizeColumnsToContents();
 
     mapper->toLast();
     qDebug() << "Post-insert row: " << mapper->currentIndex();
@@ -222,13 +224,23 @@ void CharacterEditorWindow::newCharacterAction()
     newID = query.value(0).toInt();
     query.exec(QString("INSERT INTO states (symbol, character, statelabel) VALUES (1, %1, 'state_1')").arg(newID));
     query.exec(QString("INSERT INTO states (symbol, character, statelabel) VALUES (2, %1, 'state_2')").arg(newID));
-//    statesTable_p->select();
 
     statesTable_p->setFilter(QString("character = %1").arg(newID)); //Re-enable filter on new characters
 
     charTableView->setEnabled(false);
     newChar->setEnabled(false);
     deleteChar->setEnabled(false);
+
+    // Put the new character into the observations tabe
+    if(!query.exec("INSERT INTO observations (taxon, character, state) "
+                    "SELECT taxa.taxon_id, char_id, states.state_id "
+                    "FROM taxa CROSS JOIN (SELECT * FROM characters WHERE char_id NOT IN (SELECT character FROM observations)) "
+                    "CROSS JOIN states WHERE states.statelabel = 'missing'")){
+        qDebug() << query.lastError().text();
+        return;
+    } else {
+        qDebug() << "Query executed";
+    }
 
     mapper->toLast();
 }

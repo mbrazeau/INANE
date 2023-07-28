@@ -12,13 +12,14 @@ public:
 
     static void createMainTables();
 
-    QSqlRelationalTableModel *getTableModel(QString &modelName);
+    QSqlRelationalTableModel *getTableModel(const QString &modelName);
+    static const QSqlRelationalTableModel *getTableModel(const QModelIndex &index);
     int                       getId(QSqlRelationalTableModel &tableModel, QString &field, QModelIndex &index);
     void addStateToCharacter(const QString &label, int charID);
     bool hasDatabase();
     bool openDatabase(QString &dbname);
 
-    void addObservation(const int taxID, const int charID, const int stateID);
+    static void addObservation(const int taxID, const int charID, const int stateID);
 
 private:
 

@@ -49,7 +49,7 @@ void NexusWriter::write(std::ofstream &nexout)
     while (query.next()) {
         charIDs.push_back(query.value("char_id").toInt());
         QString label;
-        label = query.value("label").toString();
+        label = query.value("charlabel").toString();
         nexout << QString(" %1 ").arg(ctr).toStdString();
         ctr++;
         nexout << NxsString::GetEscaped(label.toStdString());

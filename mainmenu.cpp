@@ -57,6 +57,7 @@ MainMenu::MainMenu(MainWindow *parent) : QMenuBar(parent)
     m_taxaEdit = new QAction(tr("&Edit taxa..."), this);
     m_taxaMenu->addAction(m_taxaEdit);
     dataMenuActions.push_back(m_taxaEdit);
+    connect(m_taxaEdit, &QAction::triggered, parent, &MainWindow::openTaxaTableView);
 
     // Characters menu
     m_charsMenu = addMenu(tr("&Characters"));

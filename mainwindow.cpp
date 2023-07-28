@@ -35,6 +35,7 @@
 #include "noteditabledelegate.h"
 #include "mdatabasemanager.h"
 #include "nexuswriter.h"
+#include "taxaeditorwindow.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
@@ -42,13 +43,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     taxonFilter = "";
 
     // Initialise the database
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+//    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
 
     // Initialise main window dimensions so it doesn't look stupid when it first opens up
     QRect rec;
     rec = QGuiApplication::primaryScreen()->geometry();
-    int width = rec.width() / 4 * 3 ;
-    int height = rec.height() / 4 * 3;
+    int width = rec.width(); // / 4 * 3 ;
+    int height = rec.height(); // / 4 * 3;
     resize(width, height);
 
     // Set up the interface
@@ -97,13 +98,15 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     obsFilterLabel->setText(tr("Filter observations:"));
 
     QPushButton *addObs = new QPushButton(tr("New observation"), this);
+    addObs->setToolTip(tr("Use this to add additional observations for a character and taxon (e.g. to create a polymorphism)"));
     //    mainLayout->addWidget(addObs, 2, 3);
     // TEMPORARY!!!
-    connect(addObs, &QPushButton::released, this, &MainWindow::updateObsTable);
+    connect(addObs, &QPushButton::released, this, &MainWindow::insertObservation);
     // END TEMP
 
     QPushButton *clearObsFilterBtn = new QPushButton(tr("Clear"), this);
-    connect(clearObsFilterBtn, &QPushButton::released, this, [&](){observationsTable->setFilter("");});
+    clearObsFilterBtn->setToolTip(tr("Clear all active filters"));
+    connect(clearObsFilterBtn, &QPushButton::released, this, &MainWindow::clearFilters);
 
     QWidget *obsToolsSpacer = new QWidget(obsTools);
     obsToolsSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -133,7 +136,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     console->resize(console->width(), 28);
     mainLayout->addWidget(console, 2, 0, 1, -1);
 
-    writeToConsole("**** Welcome to INANE! ****");
+    writeToConsole("**** Welcome to INANE ****");
     writeToConsole(QString("Version %1").arg(VERSION_STRING));
 }
 
@@ -386,6 +389,7 @@ void MainWindow::importNexus()
             progress.setValue(c);
             c++;
             QString charlabel = nxreader.getCharLabel(j);
+            // TODO: Check this line: it works only because nothing else is happing during import. Beware indices!
             query.exec(QString("SELECT char_id FROM characters WHERE rowid = %1").arg(j + 1));
             while (query.next()) {
                 charID = query.value(0).toInt();
@@ -455,6 +459,12 @@ void MainWindow::exportNexus()
     nexout.close();
 }
 
+void MainWindow::openTaxaTableView()
+{
+    TaxaEditorWindow *taxaEditor = new TaxaEditorWindow; //(this);
+    taxaEditor->show();
+}
+
 void MainWindow::onDataChanged()
 {
     observationsTable->select();
@@ -475,6 +485,8 @@ void MainWindow::onTaxonSelected(const QModelIndex &index)
 //    qDebug() << "Selected: " << taxonID.toString();
 
     taxonFilter = taxonID.toString();
+
+    obsFilterField->clear();
 
     observationsTable->setFilter(QString("taxon = '%1'").arg(taxonID.toString()));
     observationsTable->select();
@@ -531,6 +543,8 @@ void MainWindow::openCharTableView()
     CharacterEditorWindow *charEditor = new CharacterEditorWindow(charID);
     connect(charTable, &QSqlRelationalTableModel::dataChanged, this, &MainWindow::onDataChanged);
     connect(stateTable, &QSqlRelationalTableModel::dataChanged, this, &MainWindow::onDataChanged);
+    connect(charEditor, &CharacterEditorWindow::destroyed, this, &MainWindow::updateObsTable);
+    charEditor->setAttribute(Qt::WA_DeleteOnClose);
     charEditor->show();
 }
 
@@ -605,10 +619,7 @@ void MainWindow::configMainTables()
     taxaTable = new QSqlRelationalTableModel(this, QSqlDatabase::database());
     taxaTable->setTable("taxa");
     taxaTable->setEditStrategy(QSqlRelationalTableModel::OnFieldChange);
-    taxaTable->setHeaderData(0, Qt::Horizontal, tr("ID"));
-    taxaTable->setHeaderData(1, Qt::Horizontal, tr("GUUID"));
-    taxaTable->setHeaderData(2, Qt::Horizontal, tr("Name"));
-    taxaTable->setHeaderData(3, Qt::Horizontal, tr("Author"));
+    taxaTable->setHeaderData(2, Qt::Horizontal, tr("Taxon"));
 
     groupsTable = new QSqlRelationalTableModel(this, QSqlDatabase::database());
     groupsTable->setTable("taxongroups");
@@ -646,6 +657,7 @@ void MainWindow::configMainTables()
     obsTableView->setItemDelegateForColumn(3, obsDelegate);
     obsTableView->setItemDelegateForColumn(1, new NotEditableDelegate(obsTableView));
     obsTableView->setItemDelegateForColumn(2, new NotEditableDelegate(obsTableView));
+    obsTableView->setAlternatingRowColors(true);
 
     taxaTableView->setModel(taxaTable);
     obsTableView->setModel(observationsTable);
@@ -666,7 +678,7 @@ void MainWindow::configMainTables()
     taxaTableView->horizontalHeader()->setStretchLastSection(true);
 
     obsTableView->setColumnHidden(0, true);
-//    obsTableView->setSortingEnabled(true);
+    obsTableView->setSortingEnabled(true);
 
     taxaTableView->resizeColumnsToContents();
     obsTableView->resizeColumnsToContents();
@@ -718,21 +730,42 @@ void MainWindow::getNewTaxon()
 void MainWindow::updateObsTable()
 {
     // TODO: Check for valid taxa and characters?
+    // TODO: We have two very similar functions!
     QSqlQuery query;
-
-    query.prepare("INSERT INTO observations (taxon, character, state)"
-                  " SELECT taxa.taxon_id, characters.char_id, states.state_id "
-                  " FROM taxa CROSS JOIN characters CROSS JOIN states WHERE states.statelabel = 'missing'");
-
-    if (!query.exec()) {
-        qDebug() << query.lastError().text();
-        return;
-    } else {
-        qDebug() << "Query executed";
-    }
 
     observationsTable->select();
     obsTableView->resizeColumnsToContents();
+}
+
+void MainWindow::insertObservation()
+{
+    int taxID = -1, charID = -1, stateID = -1;
+
+    QModelIndex index = obsTableView->currentIndex();
+    if (!index.isValid()) {
+        return;
+    }
+    const QSqlRelationalTableModel *sqlModel = qobject_cast<const QSqlRelationalTableModel *>(index.model());
+    int row = sqlModel->record(index.row()).value("id").toInt();
+
+    QSqlQueryModel qmodel;
+
+    qmodel.setQuery(QString("SELECT taxon, character FROM observations WHERE rowid = %1").arg(row));
+    taxID = qmodel.record(0).value("taxon").toInt();
+    charID = qmodel.record(0).value("character").toInt();
+
+    qmodel.setQuery("SELECT state_id FROM states WHERE statelabel = 'missing'");
+    stateID = qmodel.record(0).value("state_id").toInt();
+
+    MDatabaseManager::addObservation(taxID, charID, stateID);
+    observationsTable->select();
+}
+
+void MainWindow::clearFilters()
+{
+    observationsTable->setFilter("");
+    taxonFilter = "";
+    obsFilterField->clear();
 }
 
 

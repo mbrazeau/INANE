@@ -50,10 +50,26 @@ void NexusWriter::write(std::ofstream &nexout)
         charIDs.push_back(query.value("char_id").toInt());
         QString label;
         label = query.value("charlabel").toString();
-        nexout << QString(" %1 ").arg(ctr).toStdString();
+        nexout << QString("[ %1 ] ").arg(ctr).toStdString();
         ctr++;
         nexout << NxsString::GetEscaped(label.toStdString());
         nexout << "\n";
+    }
+
+    nexout << ";\n";
+    nexout << "STATELABELS\n";
+    for (int i = 0; i < charIDs.size(); ++i) {
+        QString label;
+        query.exec(QString("SELECT statelabel FROM states WHERE character = %1").arg(i + 1));
+        nexout << i + 1 << "\n";
+        while (query.next()) {
+            label = query.value("statelabel").toString();
+            nexout << NxsString::GetEscaped(label.toStdString());
+            nexout << "\n";
+        }
+        if (i < (charIDs.size()-1)) {
+            nexout << ",\n";
+        }
     }
 
     assert(charIDs.size() == nchar);

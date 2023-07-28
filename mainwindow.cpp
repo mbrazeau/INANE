@@ -211,7 +211,7 @@ void MainWindow::dbNew()
     }
 
     // Initiate database
-
+    dbManager->openDatabase(path);
 
     createMainTables();
     configMainTables();
@@ -228,10 +228,7 @@ void MainWindow::dbOpen()
     }
 
     // Initiate database
-    QSqlDatabase::database().setDatabaseName(path);
-    if (!QSqlDatabase::database().open()) {
-        qDebug() << "No database!";
-    }
+    dbManager->openDatabase(path);
 
     configMainTables();
 }

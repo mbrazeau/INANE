@@ -190,11 +190,16 @@ bool MDatabaseManager::hasDatabase()
 
 bool MDatabaseManager::openDatabase(QString &dbname)
 {
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
 
     if (QSqlDatabase::database().connectionName() != "") {
         qDebug() << "A connection \"" << QSqlDatabase::database().connectionName() << "\" already exists!";
         return false;
+    }
+
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+
+    if (db.databaseName() != "") {
+        qDebug() << "A database \"" << db.databaseName() << "\" is already open!";
     }
 
     db.setDatabaseName(dbname);

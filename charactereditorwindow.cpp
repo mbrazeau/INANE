@@ -323,7 +323,7 @@ void CharacterEditorWindow::newStateAction()
     QSqlQuery query;
     int charID;
     if (!query.exec(QString("SELECT char_id FROM characters WHERE rowid = %1").arg(rowid))) {
-        qDebug() << "Cannot select char id: " << charID << ". " << query.lastError().text();
+        qDebug() << "Cannot select char id." << query.lastError().text();
     }
     query.next();
     charID = query.value(0).toInt();

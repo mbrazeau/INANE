@@ -40,6 +40,9 @@ jobs:
           modules:      qtcharts qt3d
           setup-python: false
           
+      - name: Make NCL build dir
+        run: mkdir ${{github.workspace}}\external\ncl\build
+        
       - name: (4) Install NCL
         working-directory: ${{github.workspace}}\external\ncl\build
         run: | 

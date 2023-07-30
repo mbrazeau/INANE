@@ -1,3 +1,0 @@
-[submodule "external/ncl"]
-	path = external/ncl
-	url = https://github.com/mbrazeau/ncl.git

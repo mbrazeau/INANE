@@ -173,7 +173,7 @@ void MainWindow::addTaxon(const QString &name)
     charUUID.reset();
     QString shortHash = QString(hashresult.toHex().remove(0, 2 * hashresult.size() - 7));
 
-    query.prepare(QString("INSERT INTO taxa (taxon_GUUID, name, taxgroup) VALUES (:taxon_id, :name, (SELECT group_id FROM taxongroups WHERE groupname = 'default group'))"));
+    query.prepare(QString("INSERT INTO taxa (taxon_GUUID, name, otu, taxgroup) VALUES (:taxon_id, :name, :name, (SELECT group_id FROM taxongroups WHERE groupname = 'default group'))"));
     query.bindValue(":taxon_id", shortHash);
     query.bindValue(":name", name);
     query.exec();
@@ -309,9 +309,13 @@ void MainWindow::importNexus()
     for (i = 0; i < nxreader.getNchar(); ++i) {
         progress.setValue(i);
         QString label = nxreader.getCharLabel(i);
-        charUUID.addData(label.toLocal8Bit());
 
-//        qDebug() << label;
+        if (label == " ") {
+            writeToConsole(QString("Warning: character %1 of import file has no character label defined.").arg(i + 1));
+            label = QString("Character %1").arg(i+1);
+        }
+
+        charUUID.addData(label.toLocal8Bit());
 
         for (j = 0; j < nxreader.getNumStatesForChar(i); ++j) {
             QString label = nxreader.getStateLabel(i, j);
@@ -320,6 +324,7 @@ void MainWindow::importNexus()
             }
         }
 
+        // TODO: Remove automatic GUUIDing.
         hashresult = charUUID.result();
         charUUID.reset();
         QString shortHash = QString(hashresult.toHex().remove(0, 2 * hashresult.size() - 7));
@@ -337,8 +342,9 @@ void MainWindow::importNexus()
 
         query.next();
         int charID = query.value(0).toInt();
-//        qDebug() << "Char ID: " << charID;
+
         // Insert into the state table
+        // TODO: Also need to get the OBSERVED number of states and check for mismatches.
         for (j = 0; j < nxreader.getNumStatesForChar(i); ++j) {
             QString stateLabel = QString(nxreader.getStateLabel(i, j).toLocal8Bit());
             if (stateLabel != " ") {

@@ -68,9 +68,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     taxaTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     taxaTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
     taxaTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    QToolBar *taxaTools = new QToolBar(tr("Taxa"), this);
+    QToolBar *taxaTools = new QToolBar(tr("Taxa"), mwCentralWidget);
     taxaTools->setWindowTitle(tr("Taxa"));
-    QToolBar *obsTools = new QToolBar(tr("Observations"), this);
+    QToolBar *obsTools = new QToolBar(tr("Observations"), mwCentralWidget);
 
 
     // Observation table views

@@ -21,6 +21,7 @@
 #include <QVBoxLayout>
 
 #include "taxaeditorwindow.h"
+#include "checkboxdelegate.h"
 
 TaxaEditorWindow::TaxaEditorWindow(QWidget *parent)
     : QWidget{parent}
@@ -35,4 +36,13 @@ TaxaEditorWindow::TaxaEditorWindow(QWidget *parent)
     m_taxaTableModel->select();
     m_taxaTableView->setModel(m_taxaTableModel);
     m_taxaEditLayout->addWidget(m_taxaTableView, 0, 0);
+
+//    StateSelectorDelegate *obsDelegate = new StateSelectorDelegate(observationsTable);
+//    obsTableView->setItemDelegateForColumn(3, obsDelegate);
+
+    CheckboxDelegate *inclTaxonCheckbox = new CheckboxDelegate(m_taxaTableModel);
+    m_taxaTableView->setItemDelegateForColumn(5, inclTaxonCheckbox);
+
+    m_taxaTableView->resizeColumnsToContents();
+    m_taxaTableView->resizeRowsToContents();
 }

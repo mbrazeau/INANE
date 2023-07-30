@@ -174,4 +174,6 @@ QString NexusWriter::writeMatrix()
     }
 
     delete qmodel;
+
+    return "";
 }

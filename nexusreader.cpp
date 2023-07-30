@@ -50,7 +50,7 @@ unsigned int NexusReader::getNumStatesForChar(unsigned int i)
 
 int NexusReader::getInternalRepresentation(unsigned int i, unsigned int j, unsigned int k)
 {
-    _characters->GetInternalRepresentation(i, j, k);
+    return _characters->GetInternalRepresentation(i, j, k);
 }
 
 unsigned int NexusReader::getNtax()

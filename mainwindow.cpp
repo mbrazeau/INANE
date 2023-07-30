@@ -142,6 +142,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 void MainWindow::createMenus()
 {
     mainMenu = new MainMenu(this);
+    setMenuBar(mainMenu);
     mainMenu->setDataMenusEnabled(false);
 }
 

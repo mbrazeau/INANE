@@ -42,10 +42,27 @@ void NexusWriter::write(std::ofstream &nexout)
     query.exec(QString("SELECT COUNT(*) FROM characters")); // TODO: Condition this on included characters
     query.next();
     int nchar = query.value(0).toInt();
-    query.exec(QString("SELECT char_id, charlabel FROM characters"));
-    nexout << QString("DIMENSIONS NCHAR = %1;\nCHARLABELS\n").arg(nchar).toStdString();
-    int ctr = 1;
 
+    nexout << QString("DIMENSIONS NCHAR = %1;\n").arg(nchar).toStdString();
+
+    // Generate the Nexus symbols expression based on actual symbols used in the dataset
+    if(!query.exec("SELECT symbols.symbol "
+                    "FROM symbols "
+                    "WHERE symbol_id IN (SELECT DISTINCT states.symbol FROM states) "
+                    "AND symbols.symbol != '?' AND symbols.symbol != '-'")) {
+        qDebug() << query.lastError().text();
+    }
+
+    QString symbols;
+    while (query.next()) {
+        symbols += query.value(0).toString();
+        symbols += " ";
+    }
+
+    nexout << QString("FORMAT DATATYPE=STANDARD GAP=- MISSING=? SYMBOLS=\"%1\";\nCHARLABELS\n").arg(symbols).toStdString();
+
+    query.exec(QString("SELECT char_id, charlabel FROM characters"));
+    int ctr = 1;
     while (query.next()) {
         charIDs.push_back(query.value("char_id").toInt());
         QString label;
@@ -76,21 +93,7 @@ void NexusWriter::write(std::ofstream &nexout)
 
     nexout << ";\n";
 
-    // Generate the Nexus symbols expression based on actual symbols used in the dataset
-    if(!query.exec("SELECT symbols.symbol "
-                    "FROM symbols "
-                    "WHERE symbol_id IN (SELECT DISTINCT states.symbol FROM states) "
-                    "AND symbols.symbol != '?' AND symbols.symbol != '-'")) {
-        qDebug() << query.lastError().text();
-    }
 
-    QString symbols;
-    while (query.next()) {
-        symbols += query.value(0).toString();
-        symbols += " ";
-    }
-
-    nexout << QString("FORMAT DATATYPE=STANDARD GAP=- MISSING=? SYMBOLS=\"%1\";\n").arg(symbols).toStdString();
 
     nexout << "MATRIX\n";
 

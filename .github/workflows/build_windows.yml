@@ -41,7 +41,7 @@ jobs:
           setup-python: false
           
       - name: (4) Install NCL
-        working-directory: ${{github.workspace}}/external/ncl/build
+        working-directory: ${{github.workspace}}\external\ncl\build
         run: | 
              cmake ..
              cmake --build . --config Release

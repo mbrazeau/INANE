@@ -26,6 +26,7 @@ def buildLibs():
     os.chdir("build")
     os.system("cmake ..")
     os.system("make")
+    os.chdir("..")
 
 def main(argv):
     args = ["update"]

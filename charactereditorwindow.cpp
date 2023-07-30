@@ -336,10 +336,11 @@ void CharacterEditorWindow::newStateAction()
                             " AND symbol != '?' AND symbol != '-' "
                             " ORDER BY symbol_id ASC").arg(charID))) {
 
-        QMessageBox checkDelete;
-        checkDelete.setIcon(QMessageBox::Information);
-        checkDelete.setText("Cannot create new state");
-        checkDelete.setInformativeText("This is likely because you have reached the limit of states for this character");
+        QMessageBox newStateFail;
+        newStateFail.setIcon(QMessageBox::Critical);
+        newStateFail.setText("Cannot create new state");
+        newStateFail.setInformativeText("This is likely because you have reached the limit of states for this character");
+        newStateFail.exec();
         return;
     }
 
@@ -353,6 +354,11 @@ void CharacterEditorWindow::newStateAction()
     query.bindValue(":char_id", charID);
     if (!query.exec()) {
         qDebug() << query.lastError().text();
+        QMessageBox newStateFail;
+        newStateFail.setIcon(QMessageBox::Critical);
+        newStateFail.setText("Cannot create new state");
+        newStateFail.setInformativeText("This is likely because you have reached the limit of states for this character");
+        newStateFail.exec();
     }
     statesTable_p->select();
     filterStatesByChar(index);
@@ -398,7 +404,10 @@ void CharacterEditorWindow::filterStatesByChar(const QModelIndex &index)
     charID = charTable_p->record(index.row()).value(QString("char_id")).toInt();
     statesTable_p->filter().clear();
     qDebug() << "CHAR ID: " << charID;
-    statesTable_p->setFilter(QString("character = %1").arg(charID));
+    statesTable_p->setFilter(QString("character = %1 ").arg(charID));
+    statesTable_p->setSort(1, Qt::AscendingOrder);
+    statesTable_p->select();
+    statesTable->resizeColumnsToContents();
 }
 
 void CharacterEditorWindow::onCharacterClicked(const QModelIndex &index)

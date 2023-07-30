@@ -74,7 +74,7 @@ jobs:
               qmake -r ${{ env.SOURCE_DIR }}\INANE.pro
               ${{ runner.temp }}\jom\jom -j2
               cd release
-              windeployqt --qmldir ${{ env.SOURCE_DIR }} inane.exe --pdb --release --compiler-runtime
+              windeployqt --qmldir ${{ env.SOURCE_DIR }} INANE.exe --pdb --release --compiler-runtime
               copy C:\Windows\System32\concrt140.dll . 
               copy C:\Windows\System32\vccorlib140.dll .
               copy C:\Windows\System32\msvcp140.dll .

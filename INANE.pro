@@ -13,6 +13,7 @@ QMAKE_LFLAGS_RELEASE -= -O1
 
 SOURCES += \
     charactereditorwindow.cpp \
+    checkboxdelegate.cpp \
     main.cpp \
     mainmenu.cpp \
     mainwindow.cpp \
@@ -26,6 +27,7 @@ SOURCES += \
 
 HEADERS += \
     charactereditorwindow.h \
+    checkboxdelegate.h \
     mainmenu.h \
     mainwindow.h \
     mdatabasemanager.h \

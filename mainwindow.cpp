@@ -116,16 +116,16 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     obsTools->addWidget(obsFilterField);
     obsTools->addWidget(clearObsFilterBtn);
 
-    mainLayout->addWidget(taxaTools, 0, 0);
-    mainLayout->addWidget(obsTools, 0, 1, 1, -1);
+    mainLayout->addWidget(taxaTools, 1, 0);
+    mainLayout->addWidget(obsTools, 1, 1, 1, -1);
 
     // Put the main tables in a splitter:
     QSplitter *splitter = new QSplitter(Qt::Horizontal);
-    mainLayout->addWidget(splitter, 1, 0, 1, -1);
+    mainLayout->addWidget(splitter, 2, 0, 1, -1);
     splitter->addWidget(taxaTableView);
     splitter->addWidget(obsTableView);
     splitter->setStretchFactor(1, 2);
-    mainLayout->setRowStretch(1, 3);
+    mainLayout->setRowStretch(2, 3);
 
     // Add a console at the bottom of the screen to display some internal messages to the user
     // NOTE: this might get removed in later versions or be displayed in a separate window as in some other programs.
@@ -133,7 +133,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     console->setFont(QFont("courier"));
     console->setReadOnly(true);
     console->resize(console->width(), 28);
-    mainLayout->addWidget(console, 2, 0, 1, -1);
+    mainLayout->addWidget(console, 3, 0, 1, -1);
 
     writeToConsole("**** Welcome to INANE ****");
     writeToConsole(QString("Version %1").arg(VERSION_STRING));

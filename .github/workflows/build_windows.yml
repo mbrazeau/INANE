@@ -40,15 +40,6 @@ jobs:
           modules:      qtcore qtgui qtwidgets qtsql
           setup-python: false
           
-      - name: Make NCL build dir
-        run: mkdir ${{github.workspace}}\external\ncl\build
-        
-      - name: (4) Install NCL
-        working-directory: ${{github.workspace}}\external\ncl\build
-        run: | 
-             cmake ..
-             cmake --build . --config Release
-      
       - name: (5) Download JOM
         uses: suisei-cn/actions-download-file@v1
         with:
@@ -59,6 +50,15 @@ jobs:
         working-directory: ${{ runner.temp }}
         run:  |
               7z x jom.zip -ojom
+      
+      - name: Make NCL build dir
+        run: mkdir ${{github.workspace}}\external\ncl\build
+        
+      - name: (4) Install NCL
+        working-directory: ${{github.workspace}}\external\ncl\build
+        run: | 
+             cmake ..
+             cmake --build . --config Release
               
       - name: (7) Create build directory
         run:  mkdir ${{ runner.temp }}\build

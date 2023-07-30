@@ -41,7 +41,10 @@ jobs:
           setup-python: false
           
       - name: (4) Install NCL
-        run: python getdeps.py build
+        working-directory: ${{github.workspace}}/external/ncl/build
+        run: | 
+             cmake ..
+             cmake --build . --config Release
       
       - name: (5) Download JOM
         uses: suisei-cn/actions-download-file@v1

@@ -208,8 +208,11 @@ void CharacterEditorWindow::newCharacterAction()
     statesTable_p->setFilter(""); // Temporarily disable filter
 
     QSqlQuery query;
+
+    QSqlDatabase::database().transaction();
     if(!query.exec("INSERT INTO characters (charlabel, included) VALUES ('new character', 1)")) {
         qDebug() << "Failed to create new character!";
+        return;
     }
 
     charTable_p->select();
@@ -219,28 +222,42 @@ void CharacterEditorWindow::newCharacterAction()
     qDebug() << "Post-insert row: " << mapper->currentIndex();
 
     int newID;
-    query.exec("SELECT last_insert_rowid()");
+    if(!query.exec("SELECT last_insert_rowid()")) {
+        qDebug() << "Fatal error in new character action.";
+        QSqlDatabase::database().rollback();
+        qDebug() << query.lastError().text();
+        return;
+    }
     query.next();
     newID = query.value(0).toInt();
-    query.exec(QString("INSERT INTO states (symbol, character, statelabel) VALUES (1, %1, 'state_1')").arg(newID));
-    query.exec(QString("INSERT INTO states (symbol, character, statelabel) VALUES (2, %1, 'state_2')").arg(newID));
+    if (!query.exec(QString("INSERT INTO states (symbol, character, statelabel) "
+                            "VALUES (1, %1, 'state_1'),(2, %1, 'state_2')").arg(newID))) {
 
-    statesTable_p->setFilter(QString("character = %1").arg(newID)); //Re-enable filter on new characters
+        qDebug() << "Fatal error in new character action: cannot create new states";
+        qDebug() << query.lastError().text();
+        QSqlDatabase::database().rollback();
+        return;
+    }
+
+    statesTable_p->setFilter(QString("character = %1").arg(newID)); //Re-enable filter on new character
 
     charTableView->setEnabled(false);
     newChar->setEnabled(false);
     deleteChar->setEnabled(false);
 
-    // Put the new character into the observations tabe
+    // Put the new character into the observations table
     if(!query.exec("INSERT INTO observations (taxon, character, state) "
                     "SELECT taxa.taxon_id, char_id, states.state_id "
                     "FROM taxa CROSS JOIN (SELECT * FROM characters WHERE char_id NOT IN (SELECT character FROM observations)) "
                     "CROSS JOIN states WHERE states.statelabel = 'missing'")){
+
+        qDebug() << "Fatal error in new character action: cannot populate observations table";
         qDebug() << query.lastError().text();
+        QSqlDatabase::database().rollback();
         return;
-    } else {
-        qDebug() << "Query executed";
     }
+
+    QSqlDatabase::database().commit();
 
     mapper->toLast();
 }
@@ -362,6 +379,36 @@ void CharacterEditorWindow::newStateAction()
     }
     statesTable_p->select();
     filterStatesByChar(index);
+}
+
+void CharacterEditorWindow::shiftStateUpAction(QModelIndex &index)
+{
+    QSqlQuery query;
+    const QModelIndex sib;
+    int tmpstate;
+
+    sib = index.siblingAtRow(index.row()-1);
+
+    if (!sib.isValid()) {
+        return;
+    }
+
+
+}
+
+void CharacterEditorWindow::shiftStateDnAction(QModelIndex &index)
+{
+    QSqlQuery query;
+    const QModelIndex sib;
+    int tmpstate;
+
+    sib = index.siblingAtRow(index.row()+1);
+
+    if (!sib.isValid()) {
+        return;
+    }
+
+
 }
 
 void CharacterEditorWindow::deleteStateAction()

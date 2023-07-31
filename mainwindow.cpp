@@ -82,14 +82,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     // Set up the main tool bar
 
     // Taxa tools
-    QPushButton *addTaxon = new QPushButton(tr("New taxon"), this);
-    QPushButton *deleteTaxon = new QPushButton(tr("Delete taxon"), this);
-    connect(addTaxon, &QPushButton::released, this, &MainWindow::getNewTaxon);
+    QPushButton *addTaxonBtn = new QPushButton(tr("New taxon"), this);
+    QPushButton *deleteTaxonBtn = new QPushButton(tr("Delete taxon"), this);
+    connect(addTaxonBtn, &QPushButton::released, this, &MainWindow::getNewTaxon);
 
     QWidget *taxaToolsSpacer = new QWidget(taxaTools);
     taxaToolsSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    taxaTools->addWidget(addTaxon);
-    taxaTools->addWidget(deleteTaxon);
+    taxaTools->addWidget(addTaxonBtn);
+    taxaTools->addWidget(deleteTaxonBtn);
     taxaTools->addWidget(taxaToolsSpacer);
 
     // Observation tools
@@ -159,28 +159,6 @@ void MainWindow::aboutMenu()
     ;
 
     showMessage(about);
-}
-
-void MainWindow::addTaxon(const QString &name)
-{
-    QSqlQuery query;
-    QCryptographicHash charUUID(QCryptographicHash::Sha1);
-    QByteArray data;
-    QByteArray hashresult;
-
-    data = name.toLocal8Bit();
-    charUUID.addData(data);
-    hashresult = charUUID.result();
-    charUUID.reset();
-    QString shortHash = QString(hashresult.toHex().remove(0, 2 * hashresult.size() - 7));
-
-    query.prepare(QString("INSERT INTO taxa (taxon_GUUID, name, otu, taxgroup) VALUES (:taxon_id, :name, :name, (SELECT group_id FROM taxongroups WHERE groupname = 'default group'))"));
-    query.bindValue(":taxon_id", shortHash);
-    query.bindValue(":name", name);
-    query.exec();
-    if (query.next()) {
-        qDebug() << query.value(0).toString();
-    }
 }
 
 void MainWindow::writeToConsole(const QString &msg)
@@ -298,7 +276,7 @@ void MainWindow::importNexus()
     for (i = 0; i < nxreader.getNtax(); ++i) {
         progress.setValue(i);
         QString taxname = nxreader.getTaxLabel(i);
-        addTaxon(taxname);
+        MDatabaseManager::addTaxon(taxname);
     }
     progress.setValue(nxreader.getNtax());
 
@@ -719,7 +697,7 @@ void MainWindow::getNewTaxon()
                                               &ok);
 
     if (ok && !taxonName.isEmpty()) {
-        addTaxon(taxonName);
+        MDatabaseManager::addTaxon(taxonName);
     } else {
         return;
     }

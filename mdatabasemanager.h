@@ -18,6 +18,8 @@ public:
     bool                                    hasDatabase();
     bool                                    openDatabase(QString &dbname);
     static void                             addObservation(const int taxID, const int charID, const int stateID);
+    static void                             addTaxon(const QString &name = "New taxon");
+    static void                             addCharacter(const QString &label = "New character");
 
 private:
 

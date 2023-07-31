@@ -227,3 +227,31 @@ void MDatabaseManager::addObservation(const int taxID, const int charID, const i
     }
 }
 
+void MDatabaseManager::addTaxon(const QString &name)
+{
+    QSqlQuery query;
+    QCryptographicHash charUUID(QCryptographicHash::Sha1);
+    QByteArray data;
+    QByteArray hashresult;
+
+    data = name.toLocal8Bit();
+    charUUID.addData(data);
+    hashresult = charUUID.result();
+    charUUID.reset();
+    QString shortHash = QString(hashresult.toHex().remove(0, 2 * hashresult.size() - 7));
+
+    query.prepare(QString("INSERT INTO taxa (taxon_GUUID, name, otu, taxgroup, included) "
+                          "VALUES (:taxon_id, :name, :name, (SELECT group_id FROM taxongroups WHERE groupname = 'default group'), 1)"));
+    query.bindValue(":taxon_id", shortHash);
+    query.bindValue(":name", name);
+    query.exec();
+    if (query.next()) {
+        qDebug() << query.value(0).toString();
+    }
+}
+
+void MDatabaseManager::addCharacter(const QString &label)
+{
+
+}
+

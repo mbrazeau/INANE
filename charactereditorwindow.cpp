@@ -208,7 +208,7 @@ void CharacterEditorWindow::newCharacterAction()
     statesTable_p->setFilter(""); // Temporarily disable filter
 
     QSqlQuery query;
-    if(!query.exec("INSERT INTO characters (charlabel) VALUES ('new character')")) {
+    if(!query.exec("INSERT INTO characters (charlabel, included) VALUES ('new character', 1)")) {
         qDebug() << "Failed to create new character!";
     }
 

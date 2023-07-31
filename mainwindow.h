@@ -36,7 +36,6 @@ public slots:
     void openCharTableView();
     void openStateTableView();
     void aboutMenu();
-//    void addTaxon(const QString &name);
     void writeToConsole(const QString &msg);
     void updateObsTable();
 

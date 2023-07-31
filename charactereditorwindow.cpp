@@ -387,7 +387,7 @@ void CharacterEditorWindow::shiftStateUpAction(QModelIndex &index)
     const QModelIndex sib;
     int tmpstate;
 
-    sib = index.siblingAtRow(index.row()-1);
+    index.siblingAtRow(index.row()-1);
 
     if (!sib.isValid()) {
         return;
@@ -399,7 +399,7 @@ void CharacterEditorWindow::shiftStateUpAction(QModelIndex &index)
 void CharacterEditorWindow::shiftStateDnAction(QModelIndex &index)
 {
     QSqlQuery query;
-    const QModelIndex sib;
+    QModelIndex sib;
     int tmpstate;
 
     sib = index.siblingAtRow(index.row()+1);

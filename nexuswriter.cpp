@@ -39,7 +39,7 @@ void NexusWriter::write(std::ofstream &nexout)
     nexout << "END;\n\n";
 
     nexout << "BEGIN CHARACTERS;\n";
-    query.exec(QString("SELECT COUNT(*) FROM characters")); // TODO: Condition this on included characters
+    query.exec(QString("SELECT COUNT(*) FROM characters WHERE included")); // TODO: Condition this on included characters
     query.next();
     int nchar = query.value(0).toInt();
 
@@ -61,7 +61,7 @@ void NexusWriter::write(std::ofstream &nexout)
 
     nexout << QString("FORMAT DATATYPE=STANDARD GAP=- MISSING=? SYMBOLS=\"%1\";\nCHARLABELS\n").arg(symbols).toStdString();
 
-    query.exec(QString("SELECT char_id, charlabel FROM characters"));
+    query.exec(QString("SELECT char_id, charlabel FROM characters WHERE included"));
     int ctr = 1;
     while (query.next()) {
         charIDs.push_back(query.value("char_id").toInt());
@@ -77,7 +77,7 @@ void NexusWriter::write(std::ofstream &nexout)
     nexout << "STATELABELS\n";
     for (int i = 0; i < charIDs.size(); ++i) {
         QString label;
-        query.exec(QString("SELECT statelabel FROM states WHERE character = %1").arg(i + 1));
+        query.exec(QString("SELECT statelabel FROM states WHERE character = %1").arg(charIDs[i]));
         nexout << i + 1 << "\n";
         while (query.next()) {
             label = query.value("statelabel").toString();
@@ -92,8 +92,6 @@ void NexusWriter::write(std::ofstream &nexout)
     assert(charIDs.size() == nchar);
 
     nexout << ";\n";
-
-
 
     nexout << "MATRIX\n";
 

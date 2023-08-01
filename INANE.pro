@@ -4,7 +4,7 @@ QT = core gui
 
 greaterThan(QT_MAJOR_VERSION, 5): QT += sql widgets
 
-VERSION = 0.3
+VERSION = 0.4
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 
 

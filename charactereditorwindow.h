@@ -54,7 +54,7 @@ private:
     QDialogButtonBox *stateListButtons;
     QDialogButtonBox *charDataButtons;
 
-    QToolBar *stateTools;
+    QWidget *stateTools;
     QToolButton *moveStateUp;
     QToolButton *moveStateDn;
     QToolButton *newState;

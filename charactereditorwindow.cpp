@@ -144,8 +144,8 @@ void CharacterEditorWindow::initEditorArea(const int row)
     // Add some up-down buttons for reordering states
 //    stateTools = new QToolBar(this);
 
-    stateTools = new QToolBar(this);
-    stateTools->setOrientation(Qt::Vertical);
+    stateTools = new QWidget(this);
+    stateTools->setLayout(new QVBoxLayout);
     moveStateUp = new QToolButton(this);
     moveStateUp->setArrowType(Qt::UpArrow);
     moveStateUp->setToolTip(tr("Reorder state up"));
@@ -158,10 +158,10 @@ void CharacterEditorWindow::initEditorArea(const int row)
     deleteState = new QToolButton(this);
     deleteState->setIcon(QApplication::style()->standardIcon(QStyle::SP_DialogDiscardButton));
     deleteState->setToolTip(tr("Delete state from this character"));
-    stateTools->addWidget(moveStateUp);
-    stateTools->addWidget(moveStateDn);
-    stateTools->addWidget(newState);
-    stateTools->addWidget(deleteState);
+    stateTools->layout()->addWidget(moveStateUp);
+    stateTools->layout()->addWidget(moveStateDn);
+    stateTools->layout()->addWidget(newState);
+    stateTools->layout()->addWidget(deleteState);
     charWindLayout->addWidget(stateTools, 3, 2);
 
     // Create state button connections

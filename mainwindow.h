@@ -49,6 +49,7 @@ private:
     void resetMainTables();
     void getNewTaxon();
     void insertObservation();
+    void deleteObservation();
     void clearFilters();
 
     MDatabaseManager *dbManager;

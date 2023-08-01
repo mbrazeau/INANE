@@ -24,6 +24,7 @@
 #include <QtSql>
 #include <QTableView>
 #include <QToolBar>
+#include <QToolButton>
 #include <QVBoxLayout>
 #include <QWindow>
 
@@ -83,46 +84,47 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     // Set up the main tool bar
 
-    // Taxa tools
-//    QPushButton *addTaxonBtn = new QPushButton(tr("New taxon"), this);
-//    QPushButton *deleteTaxonBtn = new QPushButton(tr("Delete taxon"), this);
-//    connect(addTaxonBtn, &QPushButton::released, this, &MainWindow::getNewTaxon);
-
-//    QWidget *taxaToolsSpacer = new QWidget(taxaTools);
-//    taxaToolsSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-//    taxaTools->addWidget(addTaxonBtn);
-//    taxaTools->addWidget(deleteTaxonBtn);
-//    taxaTools->addWidget(taxaToolsSpacer);
-
-    // Observation tools
     obsFilterField = new QLineEdit(this);
     QLabel *obsFilterLabel = new QLabel(this);
     obsFilterLabel->setBuddy(obsFilterField);
     obsFilterLabel->setText(tr("Filter observations:"));
 
-    QPushButton *addObs = new QPushButton(tr("New observation"), this);
+    QToolButton *addObs = new QToolButton(this);//(tr("New observation"), this);
+    addObs->setText(tr("New observation"));
     addObs->setToolTip(tr("Use this to add additional observations for a character and taxon (e.g. to create a polymorphism)"));
     connect(addObs, &QPushButton::released, this, &MainWindow::insertObservation);
 
-    QPushButton *delObs = new QPushButton(tr("Delete observation"), this);
+    QToolButton *delObs = new QToolButton(this);//(tr("Delete observation"), this);
+    delObs->setText(tr("Delete observation"));
     delObs->setToolTip(tr("Use this to delete an observation. Note: this will only work on observations that are polymorphic.\n"
                           "All taxa must have at least one observation for each character."));
 //    connect(delObs, &QPushButton::released, this, &MainWindow::deleteObservation);
 
-    QPushButton *clearObsFilterBtn = new QPushButton(tr("Clear"), this);
+    QToolButton *clearObsFilterBtn = new QToolButton(this);
+    clearObsFilterBtn->setText(tr("Clear"));
     clearObsFilterBtn->setToolTip(tr("Clear all active filters"));
     connect(clearObsFilterBtn, &QPushButton::released, this, &MainWindow::clearFilters);
 
     toolsLayout->addStretch();
 
-//    toolsLayout->addWidget(new QLabel("Show excluded taxa:"));
+//    obsTools->setStyleSheet("border: 1px solid red");
+    toolsLayout->setContentsMargins(0,0,0,0);
+
+    QWidget *checkBoxArea = new QWidget(obsTools);
+//    checkBoxArea->setStyleSheet("border: 1px solid red");
+    QVBoxLayout *checkLayout = new QVBoxLayout(obsTools);
+    checkBoxArea->setLayout(checkLayout);
+
     QCheckBox *showTaxCheck = new QCheckBox("Show excluded taxa");
     showTaxCheck->setChecked(true);
-    toolsLayout->addWidget(showTaxCheck);
-    toolsLayout->addSpacing(5);
+    checkLayout->addWidget(showTaxCheck);
+//    toolsLayout->addSpacing(5);
     QCheckBox *showCharCheck = new QCheckBox("Show excluded characters");
     showCharCheck->setChecked(true);
-    toolsLayout->addWidget(showCharCheck);
+    checkLayout->addWidget(showCharCheck);
+    checkLayout->setContentsMargins(0,0,0,0);
+
+    toolsLayout->addWidget(checkBoxArea);
 
     toolsLayout->addWidget(addObs);
     toolsLayout->addWidget(delObs);
@@ -399,7 +401,7 @@ void MainWindow::importNexus()
                 qDebug() << "Char ID: " << charID;
             }
 
-//            qDebug() << "Character: " << charlabel;           
+//            qDebug() << "Character: " << charlabel;
             for (k = 0; k < nxreader.getNumStates(i, j); ++k) {
                 QString statelabel;
                 statelabel = nxreader.getStateLabel(i, j, k);
@@ -765,6 +767,38 @@ void MainWindow::insertObservation()
 
     MDatabaseManager::addObservation(taxID, charID, stateID);
     observationsTable->select();
+}
+
+void MainWindow::deleteObservation()
+{
+    // First, check that the insertion would not result in a lack of observation
+    // for this taxon.
+    QModelIndex index = obsTableView->currentIndex();
+    if (!index.isValid()) {
+        return;
+    }
+    const QSqlRelationalTableModel *sqlModel = qobject_cast<const QSqlRelationalTableModel *>(index.model());
+
+    int taxID;
+    int charID;
+
+    QSqlQuery query;
+
+    query.prepare("SELECT DISTINCT FROM observations WHERE taxon = :taxID AND character = :charID");
+    query.bindValue(":taxID", taxID);
+    query.bindValue("charID", charID);
+    if (!query.exec()) {
+        qDebug() << query.lastError().text();
+        return;
+    }
+
+    if (query.result()->size() < 2) {
+        // TODO: Throw a message
+        qDebug() << "Cannot delete observation!";
+        return;
+    }
+
+
 }
 
 void MainWindow::clearFilters()

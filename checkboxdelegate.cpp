@@ -8,41 +8,18 @@ CheckboxDelegate::CheckboxDelegate(QObject *parent)
 {
 }
 
-QWidget *CheckboxDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
+bool CheckboxDelegate::editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option, const QModelIndex &index)
 {
-    const QSqlRelationalTableModel *sqlModel = qobject_cast<const QSqlRelationalTableModel *>(index.model());
-    QSqlTableModel *childModel = sqlModel ? sqlModel->relationModel(index.column()) : 0;
-    if (!childModel)
-        return QItemDelegate::createEditor(parent, option, index);
-
-    QCheckBox *editor = new QCheckBox(parent);
-
-    return editor;
-}
-
-void CheckboxDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
-{
-    const QSqlRelationalTableModel *sqlModel = qobject_cast<const QSqlRelationalTableModel *>(index.model());
-    QCheckBox *checkBox = qobject_cast<QCheckBox *>(editor);
-    if (!sqlModel || !checkBox) {
-        QItemDelegate::setEditorData(editor, index);
-        return;
+    if(event->type() == QEvent::MouseButtonRelease){
+        model->setData(index, !model->data(index).toBool());
+        model->submit();
+        event->accept();
     }
-}
-
-void CheckboxDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
-{
-
-}
-
-void CheckboxDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const
-{
-
+    return QItemDelegate::editorEvent(event, model, option, index);
 }
 
 void CheckboxDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-    QRect rect(option.rect.x(), option.rect.y(), 20, 20);
-    drawCheck(painter, option, rect, /*index.data().toBool() ?*/ Qt::Checked /*: Qt::Unchecked*/);
-    drawFocus(painter, option, rect);
+    drawCheck(painter, option, option.rect, index.data().toBool() ? Qt::Checked : Qt::Unchecked);
+    drawFocus(painter, option, option.rect);
 }

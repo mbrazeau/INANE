@@ -9,7 +9,7 @@ int main(int argc, char **argv)
 
     /* Fusion style is platform-agnostic and eliminates some display
      * issues that occur on a Mac.*/
-    Inane.setStyle(QStyleFactory::create("Fusion"));
+//    Inane.setStyle(QStyleFactory::create("Fusion"));
 
     MainWindow mw;
     mw.show();

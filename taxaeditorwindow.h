@@ -32,6 +32,9 @@ class TaxaEditorWindow : public QWidget
 public:
     explicit TaxaEditorWindow(QWidget *parent = nullptr);
 
+    void getNewTaxon();
+    void deleteTaxon();
+
 signals:
 
 };

@@ -20,12 +20,12 @@ void NexusWriter::write(std::ofstream &nexout)
 
     nexout << "BEGIN TAXA;\n";
 
-    query.exec(QString("SELECT COUNT(*) FROM taxa")); // TODO: add "WHERE included = 1"
+    query.exec(QString("SELECT COUNT(*) FROM taxa WHERE included = 1")); // TODO: add "WHERE included = 1"
     query.next();
     int ntax = query.value(0).toInt();
     nexout << QString("DIMENSIONS NTAX = %1;\nTAXLABELS\n").arg(ntax).toStdString();
 
-    query.exec(QString("SELECT name, taxon_id FROM taxa"));
+    query.exec(QString("SELECT name, taxon_id FROM taxa WHERE included = 1"));
     while (query.next()) {
         QString label;
         taxaIDs.push_back(query.value("taxon_id").toInt());

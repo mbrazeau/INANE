@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QCheckBox>
 #include <QCryptographicHash>
 #include <QDebug>
 #include <QDialog>
@@ -18,6 +19,7 @@
 #include <QSqlRelationalDelegate>
 #include <QScreen>
 #include <QSizePolicy>
+#include <QSpacerItem>
 #include <QSplitter>
 #include <QtSql>
 #include <QTableView>
@@ -68,29 +70,29 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     taxaTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     taxaTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
     taxaTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    QToolBar *taxaTools = new QToolBar(tr("Taxa"), mwCentralWidget);
-    taxaTools->setWindowTitle(tr("Taxa"));
-    QToolBar *obsTools = new QToolBar(tr("Observations"), mwCentralWidget);
-
+//    QToolBar *taxaTools = new QToolBar(tr("Taxa"), mwCentralWidget);
+//    taxaTools->setWindowTitle(tr("Taxa"));
+//    QToolBar *obsTools = new QToolBar(tr("Observations"), mwCentralWidget);
+    QWidget *obsTools = new QWidget(this);//; (tr("Observations"), mwCentralWidget);
+    QHBoxLayout *toolsLayout = new QHBoxLayout(obsTools);
 
     // Observation table views
     obsTableView = new QTableView(this);
     obsTableView->setEditTriggers(QAbstractItemView::AllEditTriggers);
     obsTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
 
-
     // Set up the main tool bar
 
     // Taxa tools
-    QPushButton *addTaxonBtn = new QPushButton(tr("New taxon"), this);
-    QPushButton *deleteTaxonBtn = new QPushButton(tr("Delete taxon"), this);
-    connect(addTaxonBtn, &QPushButton::released, this, &MainWindow::getNewTaxon);
+//    QPushButton *addTaxonBtn = new QPushButton(tr("New taxon"), this);
+//    QPushButton *deleteTaxonBtn = new QPushButton(tr("Delete taxon"), this);
+//    connect(addTaxonBtn, &QPushButton::released, this, &MainWindow::getNewTaxon);
 
-    QWidget *taxaToolsSpacer = new QWidget(taxaTools);
-    taxaToolsSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    taxaTools->addWidget(addTaxonBtn);
-    taxaTools->addWidget(deleteTaxonBtn);
-    taxaTools->addWidget(taxaToolsSpacer);
+//    QWidget *taxaToolsSpacer = new QWidget(taxaTools);
+//    taxaToolsSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+//    taxaTools->addWidget(addTaxonBtn);
+//    taxaTools->addWidget(deleteTaxonBtn);
+//    taxaTools->addWidget(taxaToolsSpacer);
 
     // Observation tools
     obsFilterField = new QLineEdit(this);
@@ -102,22 +104,33 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     addObs->setToolTip(tr("Use this to add additional observations for a character and taxon (e.g. to create a polymorphism)"));
     connect(addObs, &QPushButton::released, this, &MainWindow::insertObservation);
 
+    QPushButton *delObs = new QPushButton(tr("Delete observation"), this);
+    delObs->setToolTip(tr("Use this to delete an observation. Note: this will only work on observations that are polymorphic.\n"
+                          "All taxa must have at least one observation for each character."));
+//    connect(delObs, &QPushButton::released, this, &MainWindow::deleteObservation);
+
     QPushButton *clearObsFilterBtn = new QPushButton(tr("Clear"), this);
     clearObsFilterBtn->setToolTip(tr("Clear all active filters"));
     connect(clearObsFilterBtn, &QPushButton::released, this, &MainWindow::clearFilters);
 
-    QWidget *obsToolsSpacer = new QWidget(obsTools);
-    obsToolsSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    obsTools->addWidget(obsToolsSpacer);
-    obsTools->addWidget(addObs);
-    obsTools->addSeparator();
-    obsTools->addSeparator();
-    obsTools->addWidget(obsFilterLabel);
-    obsTools->addWidget(obsFilterField);
-    obsTools->addWidget(clearObsFilterBtn);
+    toolsLayout->addStretch();
 
-    mainLayout->addWidget(taxaTools, 1, 0);
-    mainLayout->addWidget(obsTools, 1, 1, 1, -1);
+    toolsLayout->addWidget(new QLabel("Show excluded taxa:"));
+    toolsLayout->addWidget(new QCheckBox());
+    toolsLayout->addSpacing(5);
+    toolsLayout->addWidget(new QLabel("Show excluded characters:"));
+    toolsLayout->addWidget(new QCheckBox());
+
+    toolsLayout->addWidget(addObs);
+    toolsLayout->addWidget(delObs);
+
+    toolsLayout->addWidget(obsFilterLabel);
+    toolsLayout->addWidget(obsFilterField);
+    toolsLayout->addWidget(clearObsFilterBtn);
+
+    obsTools->setLayout(toolsLayout);
+//    mainLayout->addWidget(taxaTools, 1, 0);
+    mainLayout->addWidget(obsTools, 1, 0, 1, -1);
 
     // Put the main tables in a splitter:
     QSplitter *splitter = new QSplitter(Qt::Horizontal);
@@ -358,7 +371,6 @@ void MainWindow::importNexus()
     // Process the individual observations in the matrix and insert them to the observations table
     int c = 0;
     for (i = 0; i < nxreader.getNtax(); ++i) {
-//        progress.setValue(i);
         QString taxname = nxreader.getTaxLabel(i);
 
         int taxID;
@@ -398,6 +410,8 @@ void MainWindow::importNexus()
                     if (!query.exec()) {
                         qDebug() << query.lastError().text();
                         writeToConsole(query.lastError().text());
+                        QSqlDatabase::database().rollback();
+                        return;
                     }
                 } else {
                     query.prepare(QString("INSERT INTO observations (taxon, character, state) "
@@ -408,6 +422,8 @@ void MainWindow::importNexus()
                     if (!query.exec()) {
                         qDebug() << query.lastError().text();
                         writeToConsole(query.lastError().text());
+                        QSqlDatabase::database().rollback();
+                        return;
                     }
                 }
             }

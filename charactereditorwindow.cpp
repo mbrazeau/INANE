@@ -24,6 +24,7 @@
 #include "charactereditorwindow.h"
 #include "mainwindow.h"
 #include "noteditabledelegate.h"
+#include "checkboxdelegate.h"
 
 CharacterEditorWindow::CharacterEditorWindow(const int row, QWidget *parent) : QWidget(parent)
 {
@@ -53,6 +54,8 @@ CharacterEditorWindow::CharacterEditorWindow(const int row, QWidget *parent) : Q
 
     charTableView->resizeColumnsToContents();
     charTableView->horizontalHeader()->setStretchLastSection(true);
+
+
 }
 
 void CharacterEditorWindow::setCharTable()
@@ -63,11 +66,16 @@ void CharacterEditorWindow::setCharTable()
     charTableView->setModel(charTable_p);
     charTable_p->select();
 
+    charTableView->horizontalHeader()->moveSection(4, 0);
+    CheckboxDelegate *inclCharCheckbox = new CheckboxDelegate(charTable_p);
+    charTableView->setItemDelegateForColumn(4, inclCharCheckbox);
     charTableView->setColumnHidden(0, true);
     charTableView->setColumnHidden(1, true);
     charTableView->setColumnHidden(3, true);
-    charTableView->setColumnHidden(4, true);
+//    charTableView->setColumnHidden(4, true);
     charTableView->setColumnHidden(charTable_p->fieldIndex("notes"), true);
+
+
 
     charTableView->selectRow(0);
 

@@ -286,7 +286,7 @@ void MainWindow::importNexus()
     QSqlDatabase::database().transaction();
     // Process the taxa and insert them to the taxa table
     QProgressDialog progress("Importing taxa...", "Abort", 0, nxreader.getNtax(), this);
-    progress.setWindowModality(Qt::WindowModal);
+    progress.setWindowModality(Qt::ApplicationModal);
     for (i = 0; i < nxreader.getNtax(); ++i) {
         progress.setValue(i);
         QString taxname = nxreader.getTaxLabel(i);

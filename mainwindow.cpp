@@ -98,7 +98,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     delObs->setText(tr("Delete observation"));
     delObs->setToolTip(tr("Use this to delete an observation. Note: this will only work on observations that are polymorphic.\n"
                           "All taxa must have at least one observation for each character."));
-//    connect(delObs, &QPushButton::released, this, &MainWindow::deleteObservation);
+    connect(delObs, &QPushButton::released, this, &MainWindow::deleteObservation);
 
     QToolButton *clearObsFilterBtn = new QToolButton(this);
     clearObsFilterBtn->setText(tr("Clear"));
@@ -106,25 +106,24 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     connect(clearObsFilterBtn, &QPushButton::released, this, &MainWindow::clearFilters);
 
     toolsLayout->addStretch();
-
 //    obsTools->setStyleSheet("border: 1px solid red");
     toolsLayout->setContentsMargins(0,0,0,0);
 
-    QWidget *checkBoxArea = new QWidget(obsTools);
-//    checkBoxArea->setStyleSheet("border: 1px solid red");
-    QVBoxLayout *checkLayout = new QVBoxLayout(obsTools);
-    checkBoxArea->setLayout(checkLayout);
+//    QWidget *checkBoxArea = new QWidget(obsTools);
+////    checkBoxArea->setStyleSheet("border: 1px solid red");
+//    QVBoxLayout *checkLayout = new QVBoxLayout(obsTools);
+//    checkBoxArea->setLayout(checkLayout);
 
-    QCheckBox *showTaxCheck = new QCheckBox("Show excluded taxa");
-    showTaxCheck->setChecked(true);
-    checkLayout->addWidget(showTaxCheck);
-//    toolsLayout->addSpacing(5);
-    QCheckBox *showCharCheck = new QCheckBox("Show excluded characters");
-    showCharCheck->setChecked(true);
-    checkLayout->addWidget(showCharCheck);
-    checkLayout->setContentsMargins(0,0,0,0);
+//    QCheckBox *showTaxCheck = new QCheckBox("Show excluded taxa");
+//    showTaxCheck->setChecked(true);
+//    checkLayout->addWidget(showTaxCheck);
+////    toolsLayout->addSpacing(5);
+//    QCheckBox *showCharCheck = new QCheckBox("Show excluded characters");
+//    showCharCheck->setChecked(true);
+//    checkLayout->addWidget(showCharCheck);
+//    checkLayout->setContentsMargins(0,0,0,0);
 
-    toolsLayout->addWidget(checkBoxArea);
+//    toolsLayout->addWidget(checkBoxArea); // TODO: temporary; stick this back in and implement it
 
     toolsLayout->addWidget(addObs);
     toolsLayout->addWidget(delObs);
@@ -778,27 +777,42 @@ void MainWindow::deleteObservation()
         return;
     }
     const QSqlRelationalTableModel *sqlModel = qobject_cast<const QSqlRelationalTableModel *>(index.model());
+    QSqlRecord rec = sqlModel->record(index.row());
 
-    int taxID;
-    int charID;
+    QSqlQueryModel qmodel;
+    qmodel.setQuery( QString("SELECT taxon, character FROM observations WHERE rowid = %1").arg(rec.field("id").value().toInt()) );
+    int taxID = qmodel.record(0).field("taxon").value().toInt();
+    int charID = qmodel.record(0).field("character").value().toInt();
+
+    qDebug() << taxID << " " << charID;
 
     QSqlQuery query;
 
-    query.prepare("SELECT DISTINCT FROM observations WHERE taxon = :taxID AND character = :charID");
+    query.prepare("SELECT id, taxon, character FROM observations WHERE taxon = :taxID AND character = :charID");
     query.bindValue(":taxID", taxID);
-    query.bindValue("charID", charID);
+    query.bindValue(":charID", charID);
     if (!query.exec()) {
         qDebug() << query.lastError().text();
         return;
     }
 
-    if (query.result()->size() < 2) {
+    query.next();
+    int delID = query.value("id").toInt();
+
+    query.last();
+    if ((query.at() +1) < 2) {
         // TODO: Throw a message
+        qDebug() << "Query size: " << query.size();
         qDebug() << "Cannot delete observation!";
         return;
     }
 
-
+    query.prepare("DELETE FROM observations WHERE id = :delID");
+    query.bindValue(":delID", delID);
+    if (!query.exec()) {
+        qDebug() << "Failed to delete observation";
+    }
+    observationsTable->select();
 }
 
 void MainWindow::clearFilters()

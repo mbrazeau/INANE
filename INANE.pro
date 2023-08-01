@@ -4,7 +4,7 @@ QT = core gui
 
 greaterThan(QT_MAJOR_VERSION, 5): QT += sql widgets
 
-VERSION = 0.4
+VERSION = 0.5
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 
 
@@ -23,8 +23,7 @@ SOURCES += \
     nexuswriter.cpp \
     noteditabledelegate.cpp \
     stateselectordelegate.cpp \
-    taxaeditorwindow.cpp \
-    taxonmanager.cpp
+    taxaeditorwindow.cpp
 
 HEADERS += \
     charactereditorwindow.h \
@@ -36,8 +35,7 @@ HEADERS += \
     nexuswriter.h \
     noteditabledelegate.h \
     stateselectordelegate.h \
-    taxaeditorwindow.h \
-    taxonmanager.h
+    taxaeditorwindow.h
 
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 13.0
 

@@ -115,11 +115,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     toolsLayout->addStretch();
 
-    toolsLayout->addWidget(new QLabel("Show excluded taxa:"));
-    toolsLayout->addWidget(new QCheckBox());
+//    toolsLayout->addWidget(new QLabel("Show excluded taxa:"));
+    QCheckBox *showTaxCheck = new QCheckBox("Show excluded taxa");
+    showTaxCheck->setChecked(true);
+    toolsLayout->addWidget(showTaxCheck);
     toolsLayout->addSpacing(5);
-    toolsLayout->addWidget(new QLabel("Show excluded characters:"));
-    toolsLayout->addWidget(new QCheckBox());
+    QCheckBox *showCharCheck = new QCheckBox("Show excluded characters");
+    showCharCheck->setChecked(true);
+    toolsLayout->addWidget(showCharCheck);
 
     toolsLayout->addWidget(addObs);
     toolsLayout->addWidget(delObs);
@@ -321,7 +324,7 @@ void MainWindow::importNexus()
         hashresult = charUUID.result();
         charUUID.reset();
         QString shortHash = QString(hashresult.toHex().remove(0, 2 * hashresult.size() - 7));
-        query.prepare(QString("INSERT INTO characters (char_GUUID, charlabel) VALUES (:char_id, :label)"));
+        query.prepare(QString("INSERT INTO characters (char_GUUID, charlabel, included) VALUES (:char_id, :label, 1)"));
         query.bindValue(":char_id", shortHash);
         query.bindValue(":label", label);
         if (!query.exec()) {

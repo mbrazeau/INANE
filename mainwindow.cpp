@@ -168,7 +168,7 @@ void MainWindow::writeToConsole(const QString &msg)
     console->moveCursor(QTextCursor::End);
 }
 
-void MainWindow::showMessage(QString message)
+void MainWindow::showMessage(const QString &message, QMessageBox::Icon icon)
 {
     QMessageBox mb(this);
     mb.setText(message);
@@ -190,7 +190,10 @@ void MainWindow::dbNew()
     }
 
     // Initiate database
-    dbManager->openDatabase(path);
+    if (!dbManager->openDatabase(path)) {
+        showMessage(tr("A database is already open"), QMessageBox::Critical);
+        return;
+    }
 
     createMainTables();
     configMainTables();
@@ -201,13 +204,15 @@ void MainWindow::dbOpen()
     QFileDialog fopen;
 
     path = fopen.getOpenFileName();
-
     if (path.isEmpty()) {
         return;
     }
 
     // Initiate database
-    dbManager->openDatabase(path);
+    if (!dbManager->openDatabase(path)) {
+        showMessage(tr("A database is already open"), QMessageBox::Critical);
+        return;
+    }
 
     configMainTables();
 }
@@ -233,11 +238,6 @@ void MainWindow::dbSave()
 
 void MainWindow::importNexus()
 {
-//    if (QSqlDatabase::database().databaseName() == "") {
-//        QMessageBox::critical(nullptr, "No database exists", "Create a new empty database before attempting to import files.");
-//        return;
-//    }
-
     QFileDialog fopen;
     QString nexusfilename;
     NexusReader nxreader;
@@ -259,7 +259,7 @@ void MainWindow::importNexus()
     try {
         nxreader.openNexusFile(cfilename);
     }  catch (NxsException &e) {
-        showMessage(QString::fromStdString(e.what()));
+        showMessage(QString::fromStdString(e.what()), QMessageBox::Critical);
         return;
     }
 
@@ -270,6 +270,7 @@ void MainWindow::importNexus()
 
     unsigned int i, j, k;
 
+    QSqlDatabase::database().transaction();
     // Process the taxa and insert them to the taxa table
     QProgressDialog progress("Importing taxa...", "Abort", 0, nxreader.getNtax(), this);
     progress.setWindowModality(Qt::WindowModal);
@@ -313,10 +314,14 @@ void MainWindow::importNexus()
         if (!query.exec()) {
             qDebug() << "Error inserting " << label;
             writeToConsole("Error inserting " + label);
+            QSqlDatabase::database().rollback();
+            return;
         }
 
         if (!query.exec(QString("SELECT last_insert_rowid() FROM characters"))) {
             qDebug() << "Error selecting " << shortHash;
+            QSqlDatabase::database().rollback();
+            return;
         }
 
         query.next();
@@ -336,6 +341,8 @@ void MainWindow::importNexus()
                 if (!query.exec()) {
                     qDebug() << query.lastError().text();
                     writeToConsole(query.lastError().text());
+                    QSqlDatabase::database().rollback();
+                    return;
                 }
             }
         }
@@ -357,7 +364,10 @@ void MainWindow::importNexus()
         int taxID;
         int charID;
 
-        query.exec(QString("SELECT taxon_id FROM taxa WHERE name = '%1'").arg(taxname));
+        if(!query.exec(QString("SELECT taxon_id FROM taxa WHERE name = '%1'").arg(taxname))) {
+            QSqlDatabase::database().rollback();
+            return;
+        }
         while (query.next()) {
             taxID = query.value(0).toInt();
             qDebug() << taxID << " " << taxname;
@@ -374,8 +384,7 @@ void MainWindow::importNexus()
                 qDebug() << "Char ID: " << charID;
             }
 
-//            qDebug() << "Character: " << charlabel;
-            QSqlDatabase::database().transaction();
+//            qDebug() << "Character: " << charlabel;           
             for (k = 0; k < nxreader.getNumStates(i, j); ++k) {
                 QString statelabel;
                 statelabel = nxreader.getStateLabel(i, j, k);
@@ -402,10 +411,10 @@ void MainWindow::importNexus()
                     }
                 }
             }
-            QSqlDatabase::database().commit();
+
         }
     }
-
+    QSqlDatabase::database().commit();
     progress.setMaximum(nxreader.getNchar());
 
     taxaTable->select();

@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QSqlTableModel>
 #include <QSqlQuery>
+#include <QMessageBox>
 
 class QPushButton;
 class QTableView;
@@ -41,7 +42,7 @@ public slots:
 
 private:
     void createMenus();
-    void showMessage(QString message);
+    void showMessage(const QString &message, QMessageBox::Icon icon = QMessageBox::NoIcon);
     void showInitDialog();
     void createMainTables();
     void configMainTables();

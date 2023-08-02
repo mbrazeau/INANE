@@ -23,7 +23,26 @@ INANE uses a SQLite database engine to store morphological character data. It is
 
 
 ## How do I get and use INANE?
-Currently, INANE is in development. You will need to build it from the source code at present, though we have been generating test binaries for Macs running M1 CPUs. To build INANE, you will first need to install Qt on your system. Then you should clone this repository to your machine and then run the python script (`getdeps.py`): 
+Currently, INANE is in development. I have been putting up pre-releases which you can download from the sidebar on the right. Otherwise, you will need to clone the repository with a `git clone` and build it from the source. Instructions below. 
+
+### Running on macOS
+After downloading, Mac users may need to bypass the security settings on their system.
+
+First, try opening the app by right clicking and selecting 'Open'. This should give you an error dialog. After you get the warning, go to System Preferences (or System Settings) and to the Security & Privacy area. This should have an area asking you if you want to open the app anyway. Click affirmatively.
+
+If you get the *"app is damaged"* warning, then you will need to bypass the security settings of your system. Newer macs have more stringent restrictions on running apps downloaded from the internet.
+
+1. Open Terminal
+2. enter the command: sudo spctl --master-enable
+3. enter your password
+4. enter:  xattr -cr  <drag-drop app here to get path>
+5. enter: sudo spctl --master-enable
+
+### Running on Windows
+The Windows executable should run without any changes. Download the Windows version of the app and unzip the folder. Then navigate to the `release` folder where you will find the `INANE.exe` file. Double-clicking this should launch the app. You may need to confirm to the operating system that you trust the application. 
+
+### Building from source
+To build INANE, you will first need to install Qt on your system. Then you should clone this repository to your machine and then run the python script (`getdeps.py`): 
 
 
     `python getdeps.py'

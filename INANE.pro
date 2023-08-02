@@ -58,7 +58,7 @@ RESOURCES += \
     inane.qrc
 
 win32: {
-    RC_ICONS = icons/INANE.ico
+    RC_ICONS = icons/inaneico.ico
 }
 
 macx: {

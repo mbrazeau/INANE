@@ -47,23 +47,30 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+          submodules: recursive
+      
+    - name: Get all tags for correct version determination
+        working-directory:  ${{ github.workspace }}
+        run: |
+          git fetch --all --tags -f
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
         with:
           version:      ${{ env.QT_VERSION }}
-          host:         windows
+          host:         mac
           target:       desktop
-          arch:         win64_msvc2019_64
+          arch:         clang_64
           dir:          ${{ runner.temp }}
           modules:      qtcore qtgui qtwidgets qtsql
           setup-python: false
           
     - name: Make NCL build dir
-        run: mkdir ${{github.workspace}}\external\ncl\build
+        run: mkdir ${{github.workspace}}/external/ncl/build
         
     - name: (4) Install NCL
-        working-directory: ${{github.workspace}}\external\ncl\build
+        working-directory: ${{github.workspace}}/external/ncl/build
         run: | 
              cmake ..
              cmake --build . --config Release --parallel 4

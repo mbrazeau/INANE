@@ -33,10 +33,10 @@ First, try opening the app by right clicking and selecting 'Open'. This should g
 If you get the *"app is damaged"* warning, then you will need to bypass the security settings of your system. Newer macs have more stringent restrictions on running apps downloaded from the internet.
 
 1. Open Terminal
-2. enter the command: sudo spctl --master-enable
-3. enter your password
-4. enter:  xattr -cr  *drag-drop app here to get path*
-5. enter: sudo spctl --master-enable
+2. enter the command: `sudo spctl --master-disable`
+3. enter your admin password when prompted
+4. enter:  `xattr -cr  *drag-drop app here to get path*`
+5. enter: `sudo spctl --master-enable`
 
 ### Running on Windows
 The Windows executable should run without any changes. Download the Windows version of the app and unzip the folder. Then navigate to the `release` folder where you will find the `INANE.exe` file. Double-clicking this should launch the app. You may need to confirm to the operating system that you trust the application. 

@@ -35,7 +35,7 @@ If you get the *"app is damaged"* warning, then you will need to bypass the secu
 1. Open Terminal
 2. enter the command: sudo spctl --master-enable
 3. enter your password
-4. enter:  xattr -cr  <drag-drop app here to get path>
+4. enter:  xattr -cr  *drag-drop app here to get path*
 5. enter: sudo spctl --master-enable
 
 ### Running on Windows

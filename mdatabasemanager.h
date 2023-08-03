@@ -17,13 +17,17 @@ public:
     void                                    addStateToCharacter(const QString &label, int charID);
     bool                                    hasDatabase();
     bool                                    openDatabase(QString &dbname);
+    bool                                    closeDatabase();
     static void                             addObservation(const int taxID, const int charID, const int stateID);
     static void                             addTaxon(const QString &name = "New taxon");
     static void                             addCharacter(const QString &label = "New character");
 
 private:
 
-    bool m_hasDatabase;
+    bool         m_hasDatabase;
+    QString      dbName;
+    QSqlDatabase m_dataBase;
+    QMap<QString, QSqlRelationalTableModel *> m_tableMap;
 
     QSqlRelationalTableModel *m_taxaTable;
     QSqlRelationalTableModel *m_groupsTable;
@@ -33,9 +37,7 @@ private:
     QSqlRelationalTableModel *m_subcharsTable;
     QSqlRelationalTableModel *m_observationsTable;
 
-    QString dbName;
-    QSqlQuery query;
-    QMap<QString, QSqlRelationalTableModel *> m_tableMap;
+
 };
 
 #endif // MDATABASEMANAGER_H

@@ -6,7 +6,7 @@ MDatabaseManager::MDatabaseManager() :
     m_hasDatabase(false)
 {
     // First check that a valid database is active
-    // TODO: do the above
+    m_dataBase = QSqlDatabase::addDatabase("QSQLITE");
 
     // Allocate the tables
     QString tableName;
@@ -55,9 +55,7 @@ MDatabaseManager::MDatabaseManager() :
 
 MDatabaseManager::~MDatabaseManager()
 {
-    QString connection = QSqlDatabase::database().databaseName();
-    QSqlDatabase::database().close();
-    QSqlDatabase::removeDatabase(connection);
+    closeDatabase();
 
     delete m_taxaTable;
     delete m_groupsTable;
@@ -174,6 +172,7 @@ int MDatabaseManager::getId(QSqlRelationalTableModel &tableModel, QString &field
 
 void MDatabaseManager::addStateToCharacter(const QString &label, int charID)
 {
+    QSqlQuery query;
     query.prepare(QString("INSERT INTO states (statelabel, character) VALUES (:label, :char_id)"));
     if (label != "") {
         query.bindValue(":label", label);
@@ -190,25 +189,42 @@ bool MDatabaseManager::hasDatabase()
 
 bool MDatabaseManager::openDatabase(QString &dbname)
 {
-
-    if (QSqlDatabase::database().connectionName() != "") {
-        qDebug() << "A connection \"" << QSqlDatabase::database().connectionName() << "\" already exists!";
+    if (!m_dataBase.isValid()) {
+        qDebug() << "A database \"" << m_dataBase.databaseName() << "\" is already open!";
+         qDebug() << "A database \"" << QSqlDatabase::database().databaseName() << "\" is already open!";
         return false;
     }
 
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+    m_dataBase.setDatabaseName(dbname);
+    m_hasDatabase = m_dataBase.open();
 
-    if (db.databaseName() != "") {
-        qDebug() << "A database \"" << db.databaseName() << "\" is already open!";
-    }
-
-    db.setDatabaseName(dbname);
-    if (!db.open()) {
+    if (!m_hasDatabase) {
         qDebug() << "No database!";
         return false;
     }
 
+    QSqlQuery query;
+    query.exec("PRAGMA quick_check");
+    query.next();
+    if (query.value(0).toString().toLower() != "ok") {
+        qDebug() << "Invalid database file!";
+        closeDatabase();
+        return false;
+    }
+
     dbName = dbname;
+
+    return true;
+}
+
+bool MDatabaseManager::closeDatabase()
+{
+    m_dataBase.close();
+    qDebug() << "Removing database: " << dbName;
+    QSqlDatabase::database().removeDatabase(dbName);
+
+    m_hasDatabase = false;
+    dbName = "";
 
     return true;
 }

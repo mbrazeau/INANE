@@ -208,7 +208,8 @@ void MainWindow::dbNew()
 
     // Initiate database
     if (!dbManager->openDatabase(path)) {
-        showMessage(tr("A database is already open"), QMessageBox::Critical);
+        showMessage(tr("A database is already open or file is invalid"), QMessageBox::Critical);
+        dbClose();
         return;
     }
 
@@ -227,7 +228,7 @@ void MainWindow::dbOpen()
 
     // Initiate database
     if (!dbManager->openDatabase(path)) {
-        showMessage(tr("A database is already open"), QMessageBox::Critical);
+        showMessage(tr("A database is already open or file is invalid"), QMessageBox::Critical);
         return;
     }
 
@@ -236,9 +237,7 @@ void MainWindow::dbOpen()
 
 void MainWindow::dbClose()
 {
-    QString connection = QSqlDatabase::database().databaseName();
-    QSqlDatabase::database().close();
-    QSqlDatabase::removeDatabase(connection);
+    dbManager->closeDatabase();
 
     path = "";
 

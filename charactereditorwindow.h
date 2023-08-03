@@ -73,8 +73,8 @@ private:
     void deleteCharAction();
     void commitCharChange();
     void newStateAction();
-    void shiftStateUpAction(QModelIndex &index);
-    void shiftStateDnAction(QModelIndex &index);
+    void shiftStateUpAction();
+    void shiftStateDnAction();
     void deleteStateAction();
     void filterStatesByChar(const QModelIndex &index);
 

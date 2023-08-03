@@ -99,7 +99,7 @@ void MDatabaseManager::createMainTables()
 
     query.exec("CREATE TABLE states ("
                "state_id   INTEGER PRIMARY KEY,"
-               "symbol     VARCHAR(20),"
+               "symbol     INTEGER,"
                "character  INTEGER,"
                "statelabel VARCHAR(200),"
                "definition MEDIUMTEXT,"

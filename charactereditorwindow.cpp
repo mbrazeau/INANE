@@ -12,13 +12,14 @@
 #include <QMessageBox>
 #include <QPixmap>
 #include <QPushButton>
-#include <QtSql>
+#include <QScreen>
 #include <QSqlError>
 #include <QStyle>
 #include <QTableView>
 #include <QTextEdit>
 #include <QToolBar>
 #include <QToolButton>
+#include <QtSql>
 #include <QVBoxLayout>
 
 #include "charactereditorwindow.h"
@@ -55,7 +56,11 @@ CharacterEditorWindow::CharacterEditorWindow(const int row, QWidget *parent) : Q
     charTableView->resizeColumnsToContents();
     charTableView->horizontalHeader()->setStretchLastSection(true);
 
-
+    QRect rec;
+    rec = QGuiApplication::primaryScreen()->geometry();
+    int width = rec.width() / 3;
+    int height = rec.height() / 3;
+    resize(width, height);
 }
 
 void CharacterEditorWindow::setCharTable()
@@ -120,6 +125,7 @@ void CharacterEditorWindow::initEditorArea(const int row)
     statesTable->horizontalHeader()->setStretchLastSection(true);
     statesTable->resizeColumnsToContents();
     statesTable->setItemDelegateForColumn(statesTable_p->fieldIndex("symbol"), new NotEditableDelegate(this));
+    statesTable->verticalHeader()->setHidden(true);
     statesTable_p->select();
 
     // TODO: Clean this crap.
@@ -173,6 +179,8 @@ void CharacterEditorWindow::initEditorArea(const int row)
     charWindLayout->addWidget(stateTools, 3, 2);
 
     // Create state button connections
+    connect(moveStateUp, &QToolButton::released, this, &CharacterEditorWindow::shiftStateUpAction);
+    connect(moveStateDn, &QToolButton::released, this, &CharacterEditorWindow::shiftStateDnAction);
     connect(newState, &QToolButton::released, this, &CharacterEditorWindow::newStateAction);
     connect(deleteState, &QToolButton::released, this, &CharacterEditorWindow::deleteStateAction);
 }
@@ -389,34 +397,159 @@ void CharacterEditorWindow::newStateAction()
     filterStatesByChar(index);
 }
 
-void CharacterEditorWindow::shiftStateUpAction(QModelIndex &index)
+void CharacterEditorWindow::shiftStateUpAction()
 {
+    QModelIndex index;
     QSqlQuery query;
-    const QModelIndex sib;
-    int tmpstate;
+    QModelIndex sib;
+    QString tmpstate1;
+    QString tmpstate2;
 
-    index.siblingAtRow(index.row()-1);
+    index = statesTable->currentIndex();
+
+    QSqlRecord rec = statesTable_p->record(index.row());
+    int rowid = rec.field("state_id").value().toInt();
+
+    tmpstate1 = rec.field("symbol").value().toString();
+    sib = index.siblingAtRow(index.row()-1);
 
     if (!sib.isValid()) {
+        qDebug() << "No valid sibling at index";
         return;
     }
 
+    int sibid = statesTable_p->record(sib.row()).field("state_id").value().toInt();
+    tmpstate2 = statesTable_p->record(sib.row()).field("symbol").value().toString();
 
+    query.prepare("SELECT symbol_id FROM symbols WHERE symbol = :tmp1 OR symbol = :tmp2 ORDER BY rank ASC");
+    query.bindValue(":tmp1", tmpstate1);
+    query.bindValue(":tmp2", tmpstate2);
+    if (!query.exec()) {
+        qDebug() << "Select failed: " << query.lastError().text();
+        return;
+    }
+    query.next();
+    int tmpID2 = query.value("symbol_id").toInt();
+    query.next();
+    int tmpID1 = query.value("symbol_id").toInt();
+
+    QSqlDatabase::database().transaction();
+    query.prepare("UPDATE states SET symbol = NULL"
+                  " WHERE rowid = :rowid");
+    query.bindValue(":rowid", rowid);
+    if (!query.exec()) {
+        qDebug() << "Error setting lower state to NULL: " << query.lastError().text();
+        QSqlDatabase::database().rollback();
+        return;
+    }
+
+    query.prepare("UPDATE states SET symbol = NULL"
+                  " WHERE rowid = :rowid");
+    query.bindValue(":rowid", sibid);
+    if (!query.exec()) {
+        qDebug() << "Error setting upper state to NULL: " << query.lastError().text();
+        QSqlDatabase::database().rollback();
+        return;
+    }
+
+    query.prepare("UPDATE states SET symbol = :tmpstate1 WHERE rowid = :sibid");
+    query.bindValue(":tmpstate1", tmpID1);
+    query.bindValue(":sibid", sibid);
+    if (!query.exec()) {
+        qDebug() << "Error updating state: " << query.lastError().text();
+        QSqlDatabase::database().rollback();
+        return;
+    }
+
+    query.prepare("UPDATE states SET symbol = :tmpstate2 WHERE rowid = :rowid");
+    query.bindValue(":tmpstate2", tmpID2);
+    query.bindValue(":rowid", rowid);
+    if (!query.exec()) {
+        qDebug() << "Error updating state: " << query.lastError().text();
+        QSqlDatabase::database().rollback();
+        return;
+    }
+
+    QSqlDatabase::database().commit();
+    statesTable_p->select();
 }
 
-void CharacterEditorWindow::shiftStateDnAction(QModelIndex &index)
+void CharacterEditorWindow::shiftStateDnAction()
 {
+    QModelIndex index;
     QSqlQuery query;
     QModelIndex sib;
-    int tmpstate;
+    QString tmpstate1;
+    QString tmpstate2;
 
+    index = statesTable->currentIndex();
+
+    QSqlRecord rec = statesTable_p->record(index.row());
+    int rowid = rec.field("state_id").value().toInt();
+
+    tmpstate1 = rec.field("symbol").value().toString();
     sib = index.siblingAtRow(index.row()+1);
 
     if (!sib.isValid()) {
+        qDebug() << "No valid sibling at index";
         return;
     }
 
+    int sibid = statesTable_p->record(sib.row()).field("state_id").value().toInt();
+    tmpstate2 = statesTable_p->record(sib.row()).field("symbol").value().toString();
 
+    query.prepare("SELECT symbol_id FROM symbols WHERE symbol = :tmp1 OR symbol = :tmp2 ORDER BY rank ASC");
+    query.bindValue(":tmp1", tmpstate1);
+    query.bindValue(":tmp2", tmpstate2);
+    if (!query.exec()) {
+        qDebug() << "Select failed: " << query.lastError().text();
+        return;
+    }
+    query.next();
+    int tmpID1 = query.value("symbol_id").toInt();
+    query.next();
+    int tmpID2 = query.value("symbol_id").toInt();
+
+    QSqlDatabase::database().transaction();
+    query.prepare("UPDATE states SET symbol = NULL"
+                  " WHERE rowid = :rowid");
+    query.bindValue(":rowid", rowid);
+    if (!query.exec()) {
+        qDebug() << "Error setting lower state to NULL: " << query.lastError().text();
+        QSqlDatabase::database().rollback();
+        return;
+    }
+
+    query.prepare("UPDATE states SET symbol = NULL"
+                  " WHERE rowid = :rowid");
+    query.bindValue(":rowid", sibid);
+    if (!query.exec()) {
+        qDebug() << "Error setting upper state to NULL: " << query.lastError().text();
+        QSqlDatabase::database().rollback();
+        return;
+    }
+
+    query.prepare("UPDATE states SET symbol = :tmpstate1 WHERE rowid = :sibid");
+    query.bindValue(":tmpstate1", tmpID1);
+    query.bindValue(":sibid", sibid);
+    if (!query.exec()) {
+        qDebug() << "Error updating state: " << query.lastError().text();
+        QSqlDatabase::database().rollback();
+        return;
+    }
+
+    query.prepare("UPDATE states SET symbol = :tmpstate2 WHERE rowid = :rowid");
+    query.bindValue(":tmpstate2", tmpID2);
+    query.bindValue(":rowid", rowid);
+    if (!query.exec()) {
+        qDebug() << "Error updating state: " << query.lastError().text();
+        QSqlDatabase::database().rollback();
+        return;
+    }
+
+    QSqlDatabase::database().commit();
+
+    statesTable_p->select();
 }
 
 void CharacterEditorWindow::deleteStateAction()

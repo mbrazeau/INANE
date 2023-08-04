@@ -165,11 +165,6 @@ const QSqlRelationalTableModel *MDatabaseManager::getTableModel(const QModelInde
     return sqlModel;
 }
 
-int MDatabaseManager::getId(QSqlRelationalTableModel &tableModel, QString &field, QModelIndex &index)
-{
-    return -1;
-}
-
 void MDatabaseManager::addStateToCharacter(const QString &label, int charID)
 {
     QSqlQuery query;
@@ -190,8 +185,7 @@ bool MDatabaseManager::hasDatabase()
 bool MDatabaseManager::openDatabase(QString &dbname)
 {
     if (!m_dataBase.isValid()) {
-        qDebug() << "A database \"" << m_dataBase.databaseName() << "\" is already open!";
-         qDebug() << "A database \"" << QSqlDatabase::database().databaseName() << "\" is already open!";
+        qDebug() << "A database is already open!";
         return false;
     }
 

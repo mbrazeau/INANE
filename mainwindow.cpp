@@ -142,7 +142,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     splitter->addWidget(taxaTableView);
     splitter->addWidget(obsTableView);
     splitter->setStretchFactor(1, 2);
+//    splitter->setHandleWidth(0);
+    splitter->setStyleSheet("border: 1px solid black");
     mainLayout->setRowStretch(2, 3);
+//    mainLayout->setSpacing(2);
 
     // Add a console at the bottom of the screen to display some internal messages to the user
     // NOTE: this might get removed in later versions or be displayed in a separate window as in some other programs.

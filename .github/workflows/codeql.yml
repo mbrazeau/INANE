@@ -50,6 +50,17 @@ jobs:
       with:
           submodules: recursive
 
+    - name: (3) Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        version:      ${{ env.QT_VERSION }}
+        host:         mac
+        target:       desktop
+        arch:         clang_64
+        dir:          ${{ runner.temp }}
+        modules:      qtcore qtgui qtwidgets qtsql
+        setup-python: false
+
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2

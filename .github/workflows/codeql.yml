@@ -59,7 +59,7 @@ jobs:
         arch:         clang_64
         dir:          ${{ runner.temp }}
         modules:      qtcore qtgui qtwidgets qtsql
-        setup-python: true
+        setup-python: false
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL

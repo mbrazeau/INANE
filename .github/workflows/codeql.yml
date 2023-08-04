@@ -20,6 +20,9 @@ on:
   schedule:
     - cron: '38 0 * * 1'
 
+env:
+  QT_VERSION: '6.4.3'
+
 jobs:
   analyze:
     name: Analyze
@@ -28,7 +31,7 @@ jobs:
     #   - https://gh.io/supported-runners-and-hardware-resources
     #   - https://gh.io/using-larger-runners
     # Consider using larger runners for possible analysis time improvements.
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    runs-on: 'macos-latest'
     timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
     permissions:
       actions: read
@@ -51,16 +54,12 @@ jobs:
           submodules: recursive
 
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2
+      uses: jurplel/install-qt-action@v3
       with:
-        version: '6.4.3'
-        host: 'mac'
-        target: 'desktop'
-        arch: 'clang_64'
-        install-deps: 'true'
-        dir: '${{ github.workspace }}'
-        modules: 'qtcore qtgui qtwidgets qtsql'
-        setup-python: 'false'
+          version: ${{ env.QT_VERSION }}
+          dir: "${{ github.workspace }}"
+          cache: "true"
+          cache-key-prefix: "${{ runner.os }}-Install-Qt-${{ env.QT_VERSION }}-Action"
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL

@@ -51,7 +51,7 @@ jobs:
           submodules: recursive
 
     - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v2
       with:
         version: '6.4.3'
         host: 'mac'

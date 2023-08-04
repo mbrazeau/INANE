@@ -60,7 +60,7 @@ jobs:
         install-deps: 'true'
         dir: '${{ github.workspace }}'
         modules: 'qtcore qtgui qtwidgets qtsql'
-        setup-python: 'true'
+        setup-python: 'false'
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
